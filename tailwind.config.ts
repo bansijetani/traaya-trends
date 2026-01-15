@@ -10,12 +10,12 @@ const config: Config = {
     extend: {
       colors: {
         traaya: {
-          sand: "#F7F3EB",      // Background
-          terra: "#A85751",     // Accents/Buttons
-          rose: "#E6B8B8",      // Soft details
-          brown: "#4A3B32",     // Body Text
-          dark: "#2C241F",      // Headings
-          light: "#FFFFFF",     // Cards
+          sand: "#F7F3EB",      // The Warm Beige Background
+          terra: "#A85751",     // The Terracotta Red
+          rose: "#E6B8B8",      // Rose Gold
+          brown: "#4A3B32",     // Dark Brown Text
+          dark: "#2C241F",      // Darker Brown Headings
+          light: "#FFFFFF",     // Pure White
         },
       },
       fontFamily: {
