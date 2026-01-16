@@ -31,11 +31,11 @@ export default function Home() {
     earringDetail: "/images/img-item-3.jpg",
     
     // Products
-    prod1: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=600&auto=format&fit=crop",
-    prod2: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=600&auto=format&fit=crop", 
-    prod3: "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?q=80&w=600&auto=format&fit=crop", 
-    prod4: "https://images.unsplash.com/photo-1599643478518-17488fbbcd75?q=80&w=600&auto=format&fit=crop", 
-    prod5: "https://images.unsplash.com/photo-1576060965319-869274382025?q=80&w=600&auto=format&fit=crop",
+    prod1: "/images/product-20.jpg",
+    prod2: "/images/product-42.jpg", 
+    prod3: "/images/product-41.jpg", 
+    prod4: "/images/product-38.jpg", 
+    prod5: "/images/product-20.jpg",
     
     // Trendy Collection Specific Images
     trendyRing1: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=600&auto=format&fit=crop",
@@ -67,7 +67,7 @@ export default function Home() {
     blog3: "https://images.unsplash.com/photo-1599643478518-17488fbbcd75?q=80&w=800&auto=format&fit=crop", 
     
     // Newsletter & Payment
-    newsletter: "https://images.unsplash.com/photo-1617038224531-16d69e880299?q=80&w=800&auto=format&fit=crop",
+    newsletter: "/images/banner-3.jpg",
     paymentIcons: "https://i.imgur.com/7Z6Q2zD.png",
   };
 
@@ -262,34 +262,86 @@ export default function Home() {
     <main className="min-h-screen bg-[#FDFBF7] text-[#1A1A1A] overflow-x-hidden pt-[120px] md:pt-[140px]">
       <Navbar />
 
-      {/* --- HERO SECTION --- */}
-      <section className="relative w-full max-w-[1600px] mx-auto px-6 md:px-12 py-12 md:py-20 mb-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative mb-20">
-          <div className="hidden lg:block lg:col-span-3 relative z-10">
-            <div className="relative aspect-[3/5] w-full overflow-hidden">
-              <img src={images.leftWoman} alt="Woman" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+      {/* --- HERO SECTION (CORRECTED LAYOUT) --- */}
+      <section className="relative w-full bg-[#FDFBF7] pt-[140px] pb-20 overflow-hidden">
+        <div className="max-w-[1800px] mx-auto px-4 md:px-8">
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center min-h-[600px]">
+            
+            {/* LEFT COLUMN (Woman & Ring) */}
+            <div className="hidden lg:flex lg:col-span-3 flex-col gap-24">
+              {/* Top Left: Woman (Aligned Start) */}
+              <div className="w-[85%] aspect-[3/4] relative overflow-hidden">
+                <img 
+                  src={images.leftWoman} 
+                  alt="Woman Face" 
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-1000" 
+                />
+              </div>
+              
+              {/* Bottom Left: Ring (Pushed Right with ml-auto) */}
+              <div className="w-[85%] aspect-[4/3] relative overflow-hidden ml-auto">
+                <img 
+                  src={images.ringDetail} 
+                  alt="Ring Detail" 
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-1000" 
+                />
+              </div>
             </div>
-          </div>
-          <div className="lg:col-span-6 text-center z-20 px-4">
-            <span className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] mb-4 text-[#555]">Trending</span>
-            <h1 className="font-serif text-5xl md:text-6xl lg:text-[5.5rem] leading-[1.1] mb-6">
-              UNVEIL YOUR <br /> <span className="italic font-normal">Signature</span> LOOK
-            </h1>
-            <p className="text-sm md:text-base text-[#555] max-w-lg mx-auto leading-relaxed mb-10 font-sans">
-              Explore our stunning collection of handcrafted jewelry that blends timeless elegance with modern style.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mt-8">
-              <button className="w-full sm:w-auto group border border-[#1A1A1A] px-10 py-4 text-[11px] uppercase tracking-widest font-bold hover:bg-[#1A1A1A] hover:text-white transition-all duration-300 flex items-center justify-center gap-2">
-                Shop Now <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-              </button>
-              <button className="text-[11px] uppercase tracking-widest font-bold border-b border-transparent hover:border-[#1A1A1A] pb-1 transition-all">Explore More</button>
+
+            {/* CENTER COLUMN (Text) */}
+            <div className="lg:col-span-6 text-center z-10 px-4">
+              <span className="block text-[10px] font-bold uppercase tracking-[0.25em] mb-6 text-[#1A1A1A]">
+                Trending
+              </span>
+              <h1 className="font-serif text-5xl md:text-7xl xl:text-[5.5rem] leading-[1.1] mb-8 text-[#1A1A1A]">
+                UNVEIL YOUR <br /> 
+                <span className="italic font-light font-serif">Signature</span> LOOK
+              </h1>
+              <p className="text-sm text-[#555] max-w-lg mx-auto leading-relaxed mb-10 font-sans tracking-wide">
+                Explore our stunning collection of handcrafted jewelry that blends timeless elegance with modern style. Each piece is designed to empower your individuality—make your statement today!
+              </p>
+              
+              {/* Buttons: Exact Match */}
+              <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+                <Link href="/shop" className="border border-[#1A1A1A] px-12 py-4 text-[11px] uppercase tracking-[0.15em] font-bold hover:bg-[#1A1A1A] hover:text-white transition-all flex items-center gap-2 group">
+                  Shop Now 
+                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <Link href="/about" className="text-[11px] uppercase tracking-[0.15em] font-bold text-[#1A1A1A] hover:text-[#A89160] transition-colors py-4">
+                  Explore More
+                </Link>
+              </div>
             </div>
-          </div>
-          <div className="hidden lg:block lg:col-span-3 relative z-10 pt-20">
-            <div className="relative aspect-[3/5] w-full overflow-hidden">
-              <img src={images.rightHands} alt="Hands" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+
+            {/* RIGHT COLUMN (Hand & Earrings) */}
+            <div className="hidden lg:flex lg:col-span-3 flex-col gap-24">
+              {/* Top Right: Hand (Aligned End/Right) */}
+              <div className="w-[85%] aspect-[3/4] relative overflow-hidden ml-auto">
+                <img 
+                  src={images.rightHands} 
+                  alt="Hand Jewelry" 
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-1000" 
+                />
+              </div>
+
+              {/* Bottom Right: Earrings (Pushed Left with mr-auto) */}
+              <div className="w-[70%] aspect-square relative overflow-hidden bg-[#F5F5F5] mr-auto">
+                <img 
+                  src={images.earringDetail} 
+                  alt="Earrings" 
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-1000 mix-blend-multiply p-4" 
+                />
+              </div>
             </div>
+
           </div>
+
+          {/* Mobile Image (Visible only on small screens) */}
+          <div className="lg:hidden mt-12 w-full aspect-[4/5] relative overflow-hidden">
+             <img src={images.leftWoman} alt="Hero" className="w-full h-full object-cover" />
+          </div>
+
         </div>
       </section>
 
@@ -326,37 +378,73 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- FRESH FINDS SECTION --- */}
-      <section className="bg-[#111111] text-white py-24 overflow-hidden w-full">
-        <div className="flex flex-col lg:flex-row gap-0 w-full">
-          <div className="w-full lg:w-[120px] flex items-center justify-center lg:py-10">
-             <h2 className="text-4xl md:text-5xl font-serif text-white tracking-widest whitespace-nowrap lg:[writing-mode:vertical-rl] lg:rotate-180">
-               Fresh Finds, Just In
+      {/* --- FRESH FINDS SECTION (Exact Image Match) --- */}
+      <section className="bg-[#111111] text-white py-20 overflow-hidden w-full">
+        <div className="flex flex-col lg:flex-row items-center gap-0 w-full max-w-[1920px] mx-auto">
+          
+          {/* Left Title Column - Rotated & Centered */}
+          <div className="w-full lg:w-[120px] xl:w-[160px] flex items-center justify-center shrink-0 mb-12 lg:mb-0">
+             {/* - lg:-rotate-90: Rotates sideways
+                - tracking-widest: Matches the wide spacing in screenshot
+             */}
+             <h2 className="text-4xl lg:text-5xl font-serif text-white tracking-widest whitespace-nowrap lg:-rotate-90 lg:origin-center">
+               <span className="italic">Fresh Finds,</span> Just In
              </h2>
           </div>
+
+          {/* Product Carousel */}
           <div className="flex-1 w-full overflow-x-auto pb-8 scrollbar-hide">
-            <div className="flex gap-1 pr-0 pl-6 lg:pl-0"> 
+            <div className="flex gap-5 pr-6 pl-6 lg:pl-0"> 
+              
               {freshFinds.map((product) => (
-                <div key={product.id} className="min-w-[300px] md:min-w-[380px] group cursor-pointer">
-                  <div className="relative bg-white aspect-square w-full overflow-hidden">
-                    <img src={product.img} alt={product.name} className="w-full h-full object-contain p-6 hover:scale-105 transition-transform duration-500" />
+                <div key={product.id} className="min-w-[280px] md:min-w-[320px] group cursor-pointer">
+                  
+                  {/* Image Container:
+                      - aspect-square: Makes it a perfect box like your image
+                      - bg-white: White background
+                      - p-14: Adds large padding so the jewelry 'floats' inside
+                  */}
+                  <div className="relative bg-white aspect-square w-full overflow-hidden mb-5">
+                    <img 
+                      src={product.img} 
+                      alt={product.name} 
+                      className="w-full h-full object-contain hover:scale-110 transition-transform duration-700"
+                    />
+                    
+                    {/* Hover Icons (Optional: Keep hidden unless hovered) */}
                     <div className="absolute top-4 right-4 flex flex-col gap-2 translate-x-10 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300">
-                       <button className="bg-white text-[#111] p-3 shadow-sm hover:bg-[#8B7E58] hover:text-white transition-colors"><ShoppingBag size={18} /></button>
-                       <button className="bg-white text-[#111] p-3 shadow-sm hover:bg-[#8B7E58] hover:text-white transition-colors"><Eye size={18} /></button>
-                       <button className="bg-white text-[#111] p-3 shadow-sm hover:bg-[#8B7E58] hover:text-white transition-colors"><ArrowLeftRight size={18} /></button>
+                      <button className="bg-white text-[#111] p-2.5 shadow-sm hover:bg-[#A89160] hover:text-white transition-colors rounded-full">
+                        <ShoppingBag size={16} />
+                      </button>
+                      <button className="bg-white text-[#111] p-2.5 shadow-sm hover:bg-[#A89160] hover:text-white transition-colors rounded-full">
+                        <Eye size={16} />
+                      </button>
                     </div>
                   </div>
-                  <div className="pt-5 pb-2 px-1 space-y-2">
-                    <h3 className="font-serif text-lg text-white group-hover:text-[#8B7E58] transition-colors">{product.name}</h3>
-                    <div className="flex items-center gap-3 text-sm font-medium">
-                      {product.oldPrice && <span className="text-[#666] line-through decoration-[#666]">{product.oldPrice}</span>}
-                      <span className={product.oldPrice ? "text-[#D85C5C]" : "text-white"}>{product.price}</span>
+
+                  {/* Product Details - Left Aligned & Clean */}
+                  <div className="text-left">
+                    <h3 className="text-sm font-medium text-white mb-2 leading-relaxed tracking-wide truncate">
+                      {product.name}
+                    </h3>
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="font-bold text-white tracking-wide">
+                        {product.price}
+                      </span>
+                      {product.oldPrice && (
+                        <span className="text-[#666] line-through text-xs font-light">
+                          {product.oldPrice}
+                        </span>
+                      )}
                     </div>
                   </div>
+
                 </div>
               ))}
+
             </div>
           </div>
+
         </div>
       </section>
 
@@ -590,7 +678,7 @@ export default function Home() {
 
       {/* --- NEWSLETTER SECTION (NEW) --- */}
       <section className="w-full flex flex-col md:flex-row h-auto md:h-[500px]">
-        <div className="w-full md:w-1/2 relative h-[400px] md:h-full">
+        <div className="w-full md:w-1/2 relative h-[400px] md:h-full bn-image">
           <img src={images.newsletter} alt="Newsletter" className="w-full h-full object-cover" />
         </div>
         <div className="w-full md:w-1/2 bg-[#FAF6F2] p-12 md:p-24 flex flex-col justify-center">

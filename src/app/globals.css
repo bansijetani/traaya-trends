@@ -69,3 +69,11 @@ img {
   left: 0;
   background: #cda45e;
 }
+
+.bn-image img{
+  min-height: 300px;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: tf-animate-zoom-in-out 30s linear infinite;
+}
