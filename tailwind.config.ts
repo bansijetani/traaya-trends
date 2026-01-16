@@ -9,19 +9,28 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        traaya: {
-          sand: "#F7F3EB",      // The Warm Beige Background
-          terra: "#A85751",     // The Terracotta Red
-          rose: "#E6B8B8",      // Rose Gold
-          brown: "#4A3B32",     // Dark Brown Text
-          dark: "#2C241F",      // Darker Brown Headings
-          light: "#FFFFFF",     // Pure White
+        // The "Vemus" Palette (White, Black, Gold)
+        vemus: {
+          gold: "#cda45e",   // The luxury accent color
+          black: "#111111",  // Deep black text
+          darkgray: "#333333", // Secondary text
+          lightgray: "#f8f8f8", // Subtle background sections
         },
       },
       fontFamily: {
-        serif: ['var(--font-playfair)'],
-        sans: ['var(--font-lato)'],
+        serif: ['var(--font-playfair)', 'serif'], // For headings
+        sans: ['var(--font-jost)', 'sans-serif'],     // For body text
       },
+      letterSpacing: {
+        tightest: '-.075em',
+        tighter: '-.05em',
+        tight: '-.025em',
+        normal: '0',
+        wide: '.025em',
+        wider: '.05em',
+        widest: '.1em',
+        widest2: '.2em', // Extra wide for small caps
+      }
     },
   },
   plugins: [],

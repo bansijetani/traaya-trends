@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Lato } from "next/font/google";
+// Using Jost instead of Lato to match the reference better
+import { Playfair_Display, Jost } from "next/font/google";
 import "./globals.css";
 
 const playfair = Playfair_Display({ 
@@ -8,16 +9,16 @@ const playfair = Playfair_Display({
   display: "swap",
 });
 
-const lato = Lato({ 
+const jost = Jost({ 
   subsets: ["latin"], 
-  weight: ["300", "400", "700"], 
-  variable: "--font-lato",
+  weight: ["300", "400", "500", "600"], 
+  variable: "--font-jost",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Traaya Trends | The Poetry of Gold",
-  description: "Modern Jewelry & Fashion",
+  title: "Vemus Jewelry Clone",
+  description: "Luxury E-commerce Template",
 };
 
 export default function RootLayout({
@@ -27,9 +28,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${playfair.variable} ${lato.variable} font-sans antialiased bg-traaya-sand text-traaya-brown`}>
+      <body className={`${playfair.variable} ${jost.variable} font-sans antialiased bg-white text-vemus-black`}>
         {children}
       </body>
     </html>
   );
-} 
+}
