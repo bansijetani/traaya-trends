@@ -80,7 +80,7 @@ export default function Navbar() {
       <div className={`fixed top-0 left-0 h-full w-[80%] max-w-[300px] bg-[#FDFBF7] z-[101] shadow-2xl transition-transform duration-300 transform lg:hidden ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="p-6 flex flex-col h-full">
           <div className="flex justify-between items-center mb-8 border-b border-[#E5E0D8] pb-4">
-             <span className="font-serif text-2xl italic font-bold">Vemus</span>
+             <span className="font-serif text-2xl italic font-bold">TRAAYA</span>
              <button onClick={() => setIsMobileMenuOpen(false)}>
                <X size={24} strokeWidth={1.5} />
              </button>
