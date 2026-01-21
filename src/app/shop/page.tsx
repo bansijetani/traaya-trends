@@ -23,6 +23,7 @@ type Product = {
   availability: "In Stock" | "Out of Stock";
   stoneColor: string;
   size: string[];
+  category: string;
 };
 
 export default function Shop() {
@@ -31,6 +32,7 @@ export default function Shop() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
   // --- STATE FOR FILTERS ---
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
   const [selectedPrice, setSelectedPrice] = useState<string[]>([]);
   const [selectedMaterial, setSelectedMaterial] = useState<string[]>([]);
@@ -38,43 +40,49 @@ export default function Shop() {
   const [selectedSize, setSelectedSize] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("Default");
 
-  // --- ENHANCED MOCK DATA ---
+  // --- MOCK DATA ---
   const products: Product[] = [
     { 
       id: 1, name: "Emerald-cut Halo Engagement Ring", price: 3370, oldPrice: 3899, 
       img: "/images/product-1.jpg", hoverImg: "/images/product-2.jpg",
       badge: "NEW IN", badgeColor: "bg-[#8B5E3C]", status: "3 sizes are available",
-      colors: [], material: "Gold", availability: "In Stock", stoneColor: "White", size: ["6", "7", "8"]
+      colors: [], material: "Gold", availability: "In Stock", stoneColor: "White", size: ["6", "7", "8"],
+      category: "Stacking" 
     },
     { 
       id: 2, name: "Sparkling Infinity Heart Clasp", price: 2499, oldPrice: 2899,
       img: "/images/product-3.jpg", hoverImg: "/images/product-4.jpg",
       badge: "30% OFF", badgeColor: "bg-[#A89160]", status: "Selling fast", statusColor: "text-[#A89160]",
-      colors: [], material: "Sterling Silver", availability: "In Stock", stoneColor: "Pink", size: ["5", "6"]
+      colors: [], material: "Sterling Silver", availability: "In Stock", stoneColor: "Pink", size: ["5", "6"],
+      category: "Cuff"
     },
     { 
       id: 3, name: "Infinite Lab-Grown Diamond Bangle", price: 1847, oldPrice: 2599,
       img: "/images/product-5.jpg", hoverImg: "/images/trendy-1.jpg",
       badge: null, status: null,
-      colors: ["#E6C200", "#E0E0E0", "#E6A5A5"], material: "White Gold", availability: "In Stock", stoneColor: "White", size: ["7", "8"]
+      colors: ["#E6C200", "#E0E0E0", "#E6A5A5"], material: "White Gold", availability: "In Stock", stoneColor: "White", size: ["7", "8"],
+      category: "Bangle"
     },
     { 
       id: 4, name: "Olive Leaf Band Ring", price: 327, oldPrice: 899,
       img: "/images/trendy-2.jpg", hoverImg: "/images/trendy-3.jpg",
       badge: "30% OFF", badgeColor: "bg-[#A89160]", status: null,
-      colors: [], material: "Pink Gold", availability: "Out of Stock", stoneColor: "White", size: ["5"]
+      colors: [], material: "Pink Gold", availability: "Out of Stock", stoneColor: "White", size: ["5"],
+      category: "Stacking"
     },
     { 
       id: 5, name: "Organically Shaped Heart Bangle", price: 3888, oldPrice: 4899,
       img: "/images/trendy-4.jpg", hoverImg: "/images/product-1.jpg",
       badge: null, status: null,
-      colors: ["#E0E0E0"], material: "Sterling Silver", availability: "In Stock", stoneColor: "Blue", size: ["9", "10"]
+      colors: ["#E0E0E0"], material: "Sterling Silver", availability: "In Stock", stoneColor: "Blue", size: ["9", "10"],
+      category: "Bangle"
     },
     { 
       id: 6, name: "Crystal Birthstone Eternity Charm", price: 865, oldPrice: 999,
       img: "/images/product-2.jpg", hoverImg: "/images/product-3.jpg",
       badge: null, status: null,
-      colors: ["#A7C7E7", "#F4C2C2", "#FFFFFF"], material: "Gold", availability: "In Stock", stoneColor: "Blue", size: ["6", "7"]
+      colors: ["#A7C7E7", "#F4C2C2", "#FFFFFF"], material: "Gold", availability: "In Stock", stoneColor: "Blue", size: ["6", "7"],
+      category: "Chain"
     },
   ];
 
@@ -86,17 +94,12 @@ export default function Shop() {
     { name: "Chain", img: "/images/cat-new-in.jpg" },
   ];
 
-  const sortOptions = [
-    "Default",
-    "Title Ascending",
-    "Title Descending",
-    "Price Ascending",
-    "Price Descending"
-  ];
+  const sortOptions = ["Default", "Title Ascending", "Title Descending", "Price Ascending", "Price Descending"];
 
   // --- FILTER & SORT LOGIC ---
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
+      if (selectedCategory && product.category !== selectedCategory) return false;
       if (selectedAvailability.length > 0 && !selectedAvailability.includes(product.availability)) return false;
       if (selectedMaterial.length > 0 && !selectedMaterial.includes(product.material)) return false;
       if (selectedStoneColor.length > 0 && !selectedStoneColor.includes(product.stoneColor)) return false;
@@ -119,17 +122,18 @@ export default function Shop() {
       if (sortBy === "Title Descending") return b.name.localeCompare(a.name);
       return 0;
     });
-  }, [selectedAvailability, selectedPrice, selectedMaterial, selectedStoneColor, selectedSize, sortBy]);
+  }, [selectedCategory, selectedAvailability, selectedPrice, selectedMaterial, selectedStoneColor, selectedSize, sortBy]);
 
   const toggleFilter = (item: string, state: string[], setState: any) => {
     if (state.includes(item)) {
-      setState(state.filter(i => i !== item));
+      setState(state.filter((i: string) => i !== item));
     } else {
       setState([...state, item]);
     }
   };
 
   const clearAllFilters = () => {
+    setSelectedCategory(null);
     setSelectedAvailability([]);
     setSelectedPrice([]);
     setSelectedMaterial([]);
@@ -151,6 +155,7 @@ export default function Shop() {
 
       <div className="max-w-[1600px] mx-auto px-6 pt-12 pb-24">
         
+        {/* --- CATEGORY HEADER --- */}
         <div className="mb-16">
           <div className="flex flex-col lg:flex-row justify-between items-start gap-8 mb-12">
             <div>
@@ -165,13 +170,22 @@ export default function Shop() {
 
           <div className="flex justify-start lg:justify-center gap-8 lg:gap-16 overflow-x-auto pb-4 scrollbar-hide">
             {subCategories.map((cat, i) => (
-              <div key={i} className="flex flex-col items-center gap-4 min-w-[100px] cursor-pointer group">
-                <div className="w-24 h-24 lg:w-32 lg:h-32 rounded-full overflow-hidden border border-transparent group-hover:border-[#A89160] transition-all p-1">
+              <div 
+                key={i} 
+                onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
+                className="flex flex-col items-center gap-4 min-w-[100px] cursor-pointer group"
+              >
+                <div className={`w-24 h-24 lg:w-32 lg:h-32 rounded-full overflow-hidden border transition-all p-1 
+                  ${selectedCategory === cat.name ? "border-[#A89160] scale-105" : "border-transparent group-hover:border-[#A89160]"}`}
+                >
                   <div className="w-full h-full rounded-full overflow-hidden">
                     <img src={cat.img} alt={cat.name} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" />
                   </div>
                 </div>
-                <span className="text-xs font-bold uppercase tracking-widest group-hover:text-[#A89160] transition-colors">{cat.name}</span>
+                <span className={`text-xs font-bold uppercase tracking-widest transition-colors 
+                  ${selectedCategory === cat.name ? "text-[#A89160]" : "group-hover:text-[#A89160]"}`}>
+                  {cat.name}
+                </span>
               </div>
             ))}
           </div>
@@ -179,13 +193,14 @@ export default function Shop() {
 
         <div className="flex flex-col lg:flex-row gap-12 border-t border-[#E5E5E5] pt-12">
           
+          {/* --- SIDEBAR FILTERS --- */}
           <aside className={`lg:w-[260px] shrink-0 space-y-10 ${isSidebarOpen ? 'fixed inset-0 z-50 bg-white p-6 overflow-y-auto' : 'hidden lg:block'}`}>
-            
             <div className="lg:hidden flex justify-between items-center mb-6">
               <span className="font-bold uppercase tracking-widest">Filters</span>
               <button onClick={() => setIsSidebarOpen(false)}><X size={24}/></button>
             </div>
 
+            {/* Filters Groups */}
             <div>
               <h3 className="font-serif text-lg mb-4 cursor-pointer">Availability</h3>
               <ul className="space-y-3">
@@ -265,9 +280,9 @@ export default function Shop() {
                 ))}
               </div>
             </div>
-
           </aside>
 
+          {/* --- MAIN CONTENT --- */}
           <div className="flex-1">
             
             <div className="flex flex-wrap justify-between items-center mb-8 gap-4">
@@ -292,7 +307,7 @@ export default function Shop() {
                     onClick={() => setIsSortOpen(!isSortOpen)}
                     className="flex items-center gap-2 text-sm uppercase tracking-widest border border-[#A89160] px-6 py-3 hover:border-[#1A1A1A] transition-colors w-56 justify-between"
                   >
-                    SORT BY ({sortBy.replace("Price: ", "").replace("Title: ", "")}) 
+                    SORT BY ({sortBy.replace("Price: ", "").replace("Title: ", "").split(" ")[0]}) 
                     <ChevronDown size={16} className={`transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {isSortOpen && (
@@ -326,7 +341,8 @@ export default function Shop() {
 
             <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'} gap-x-8 gap-y-12`}>
               {filteredProducts.map((product) => (
-                <div key={product.id} className={`group cursor-pointer ${viewMode === 'list' ? 'flex gap-8 items-center' : ''}`}>
+                // --- THIS IS THE FIX: WRAPPED IN LINK ---
+                <Link href={`/products/${product.id}`} key={product.id} className={`group cursor-pointer ${viewMode === 'list' ? 'flex gap-8 items-center' : ''}`}>
                   
                   <div className={`relative bg-[#F9F9F9] aspect-[4/5] ${viewMode === 'list' ? 'w-1/3' : 'w-full'} overflow-hidden mb-4`}>
                     {product.badge && (
@@ -358,7 +374,7 @@ export default function Shop() {
                     )}
                   </div>
 
-                </div>
+                </Link>
               ))}
             </div>
 

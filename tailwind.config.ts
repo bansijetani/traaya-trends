@@ -2,27 +2,22 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: [
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    // FIX: Add "./src" to these paths so Tailwind sees your files inside the 'src' folder
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
       colors: {
-        vemus: {
-          bg: "#FDFBF7",       // The warm cream background
-          gold: "#8B7E58",     // The muted olive/gold top bar
-          black: "#1A1A1A",    // Soft black text
-          gray: "#555555",     // Description text
-        },
+        verus: {
+          bg: "#FDFBF7",
+          gold: "#B87E58",
+          black: "#1A1A1A",
+          gray: "#555555",
+        }
       },
-      fontFamily: {
-        serif: ['var(--font-playfair)', 'serif'],
-        sans: ['var(--font-jost)', 'sans-serif'],
-      },
-      spacing: {
-        '128': '32rem',
-      }
+      // ... keep your other theme settings
     },
   },
   plugins: [],
