@@ -2,36 +2,45 @@
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { ChevronDown, X, ShoppingBag, Eye, ArrowLeftRight, Heart, ChevronLeft, ChevronRight, Check, LayoutGrid, List, Filter } from "lucide-react";
-import { useState, useMemo } from "react";
+import { ChevronDown, X, ShoppingBag, Eye, Heart, ChevronLeft, ChevronRight, Check, LayoutGrid, List, Filter } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { client } from "@/sanity/lib/client";
+import { urlFor } from "@/sanity/lib/image";
+import { useCart } from "@/context/CartContext"; // Import Cart Context
 
 // --- TYPES ---
 type Product = {
-  id: number;
+  _id: string;
   name: string;
   price: number;
   oldPrice?: number | null;
-  img: string;
-  hoverImg: string;
-  badge?: string | null;
-  badgeColor?: string;
-  status?: string | null;
-  statusColor?: string;
-  colors: string[];
-  material: string;
-  availability: "In Stock" | "Out of Stock";
-  stoneColor: string;
-  size: string[];
+  slug: { current: string };
+  image: any;
   category: string;
+  stock?: number;
+  // These fields might not be in Sanity yet, so we make them optional or mock them for the UI
+  material?: string;
+  stoneColor?: string;
+  availability?: string;
+  badge?: string;
+  colors?: string[];
+  size?: string[];
 };
 
 export default function Shop() {
+  const { addToCart } = useCart(); // Access Global Cart
+  
+  // --- UI STATE ---
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [loading, setLoading] = useState(true);
+
+  // --- DATA STATE ---
+  const [products, setProducts] = useState<Product[]>([]);
   
-  // --- STATE FOR FILTERS ---
+  // --- FILTER STATE ---
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
   const [selectedPrice, setSelectedPrice] = useState<string[]>([]);
@@ -40,70 +49,55 @@ export default function Shop() {
   const [selectedSize, setSelectedSize] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("Default");
 
-  // --- MOCK DATA ---
-  const products: Product[] = [
-    { 
-      id: 1, name: "Emerald-cut Halo Engagement Ring", price: 3370, oldPrice: 3899, 
-      img: "/images/product-1.jpg", hoverImg: "/images/product-2.jpg",
-      badge: "NEW IN", badgeColor: "bg-[#8B5E3C]", status: "3 sizes are available",
-      colors: [], material: "Gold", availability: "In Stock", stoneColor: "White", size: ["6", "7", "8"],
-      category: "Stacking" 
-    },
-    { 
-      id: 2, name: "Sparkling Infinity Heart Clasp", price: 2499, oldPrice: 2899,
-      img: "/images/product-3.jpg", hoverImg: "/images/product-4.jpg",
-      badge: "30% OFF", badgeColor: "bg-[#A89160]", status: "Selling fast", statusColor: "text-[#A89160]",
-      colors: [], material: "Sterling Silver", availability: "In Stock", stoneColor: "Pink", size: ["5", "6"],
-      category: "Cuff"
-    },
-    { 
-      id: 3, name: "Infinite Lab-Grown Diamond Bangle", price: 1847, oldPrice: 2599,
-      img: "/images/product-5.jpg", hoverImg: "/images/trendy-1.jpg",
-      badge: null, status: null,
-      colors: ["#E6C200", "#E0E0E0", "#E6A5A5"], material: "White Gold", availability: "In Stock", stoneColor: "White", size: ["7", "8"],
-      category: "Bangle"
-    },
-    { 
-      id: 4, name: "Olive Leaf Band Ring", price: 327, oldPrice: 899,
-      img: "/images/trendy-2.jpg", hoverImg: "/images/trendy-3.jpg",
-      badge: "30% OFF", badgeColor: "bg-[#A89160]", status: null,
-      colors: [], material: "Pink Gold", availability: "Out of Stock", stoneColor: "White", size: ["5"],
-      category: "Stacking"
-    },
-    { 
-      id: 5, name: "Organically Shaped Heart Bangle", price: 3888, oldPrice: 4899,
-      img: "/images/trendy-4.jpg", hoverImg: "/images/product-1.jpg",
-      badge: null, status: null,
-      colors: ["#E0E0E0"], material: "Sterling Silver", availability: "In Stock", stoneColor: "Blue", size: ["9", "10"],
-      category: "Bangle"
-    },
-    { 
-      id: 6, name: "Crystal Birthstone Eternity Charm", price: 865, oldPrice: 999,
-      img: "/images/product-2.jpg", hoverImg: "/images/product-3.jpg",
-      badge: null, status: null,
-      colors: ["#A7C7E7", "#F4C2C2", "#FFFFFF"], material: "Gold", availability: "In Stock", stoneColor: "Blue", size: ["6", "7"],
-      category: "Chain"
-    },
-  ];
+  // --- FETCH DATA FROM SANITY ---
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const query = `*[_type == "product"] | order(_createdAt desc){
+          _id,
+          name,
+          price,
+          oldPrice,
+          slug,
+          "image": images[0],
+          category,
+          stock,
+          details 
+        }`;
+        
+        const data = await client.fetch(query);
+        
+        // Enrich data with mock fields to keep your UI filters working 
+        // (Since we haven't added Material/Stone to Sanity Schema yet)
+        const enrichedData = data.map((item: any) => ({
+          ...item,
+          material: "Gold", // Default for demo
+          stoneColor: "White", // Default for demo
+          availability: item.stock && item.stock > 0 ? "In Stock" : "Out of Stock",
+          colors: [],
+          size: ["5", "6", "7"] // Default sizes
+        }));
 
-  const subCategories = [
-    { name: "Bangle", img: "/images/cat-bracelets.jpg" },
-    { name: "Tennis", img: "/images/cat-necklaces.jpg" },
-    { name: "Stacking", img: "/images/cat-rings.jpg" },
-    { name: "Cuff", img: "/images/cat-earrings.jpg" },
-    { name: "Chain", img: "/images/cat-new-in.jpg" },
-  ];
+        setProducts(enrichedData);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const sortOptions = ["Default", "Title Ascending", "Title Descending", "Price Ascending", "Price Descending"];
+    fetchProducts();
+  }, []);
 
   // --- FILTER & SORT LOGIC ---
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
       if (selectedCategory && product.category !== selectedCategory) return false;
-      if (selectedAvailability.length > 0 && !selectedAvailability.includes(product.availability)) return false;
-      if (selectedMaterial.length > 0 && !selectedMaterial.includes(product.material)) return false;
-      if (selectedStoneColor.length > 0 && !selectedStoneColor.includes(product.stoneColor)) return false;
-      if (selectedSize.length > 0 && !selectedSize.some(s => product.size.includes(s))) return false;
+      if (selectedAvailability.length > 0 && !selectedAvailability.includes(product.availability || "")) return false;
+      if (selectedMaterial.length > 0 && !selectedMaterial.includes(product.material || "")) return false;
+      if (selectedStoneColor.length > 0 && !selectedStoneColor.includes(product.stoneColor || "")) return false;
+      
+      // Price Filter
       if (selectedPrice.length > 0) {
         const priceMatch = selectedPrice.some(range => {
           if (range === "Under $500") return product.price < 500;
@@ -122,8 +116,9 @@ export default function Shop() {
       if (sortBy === "Title Descending") return b.name.localeCompare(a.name);
       return 0;
     });
-  }, [selectedCategory, selectedAvailability, selectedPrice, selectedMaterial, selectedStoneColor, selectedSize, sortBy]);
+  }, [products, selectedCategory, selectedAvailability, selectedPrice, selectedMaterial, selectedStoneColor, selectedSize, sortBy]);
 
+  // --- HANDLERS ---
   const toggleFilter = (item: string, state: string[], setState: any) => {
     if (state.includes(item)) {
       setState(state.filter((i: string) => i !== item));
@@ -141,7 +136,36 @@ export default function Shop() {
     setSelectedSize([]);
   };
 
-  const formatPrice = (price: number) => `$${price.toLocaleString()}.00`;
+  const formatPrice = (price: number) => `$${price.toLocaleString()}`;
+
+  const getImageUrl = (image: any) => {
+    return image ? urlFor(image).width(500).url() : "/images/placeholder.jpg";
+  };
+
+  // Add Item to Cart Directly
+  const handleQuickAdd = (e: React.MouseEvent, product: Product) => {
+    e.preventDefault(); // Prevent navigating to product page
+    addToCart({
+      id: product._id,
+      name: product.name,
+      price: product.price,
+      image: getImageUrl(product.image),
+      quantity: 1,
+      slug: product.slug.current
+    });
+    alert("Added to bag!"); // Simple feedback
+  };
+
+  // Mock Categories for UI
+  const subCategories = [
+    { name: "Bangle", img: "/images/cat-bracelets.jpg" },
+    { name: "Tennis", img: "/images/cat-necklaces.jpg" },
+    { name: "Stacking", img: "/images/cat-rings.jpg" },
+    { name: "Cuff", img: "/images/cat-earrings.jpg" },
+    { name: "Chain", img: "/images/cat-new-in.jpg" },
+  ];
+
+  const sortOptions = ["Default", "Title Ascending", "Title Descending", "Price Ascending", "Price Descending"];
 
   return (
     <main className="min-h-screen bg-white text-[#1A1A1A] pt-[140px]">
@@ -149,7 +173,7 @@ export default function Shop() {
 
       <div className="border-b border-[#E5E5E5]">
         <div className="max-w-[1600px] mx-auto px-6 py-4 text-xs font-medium uppercase tracking-widest text-[#888]">
-          <Link href="/" className="hover:text-[#1A1A1A]">Home</Link> <span className="mx-2">/</span> <span className="text-[#1A1A1A]">Bracelets</span>
+          <Link href="/" className="hover:text-[#1A1A1A]">Home</Link> <span className="mx-2">/</span> <span className="text-[#1A1A1A]">Shop</span>
         </div>
       </div>
 
@@ -160,7 +184,7 @@ export default function Shop() {
           <div className="flex flex-col lg:flex-row justify-between items-start gap-8 mb-12">
             <div>
               <h1 className="font-serif text-4xl lg:text-5xl uppercase tracking-wide mb-2">
-                Bracelets <sup className="text-sm text-[#888] font-sans">{filteredProducts.length}</sup>
+                All Products <sup className="text-sm text-[#888] font-sans">{filteredProducts.length}</sup>
               </h1>
             </div>
             <p className="text-[#555] text-sm leading-relaxed max-w-xl font-sans">
@@ -178,7 +202,8 @@ export default function Shop() {
                 <div className={`w-24 h-24 lg:w-32 lg:h-32 rounded-full overflow-hidden border transition-all p-1 
                   ${selectedCategory === cat.name ? "border-[#A89160] scale-105" : "border-transparent group-hover:border-[#A89160]"}`}
                 >
-                  <div className="w-full h-full rounded-full overflow-hidden">
+                  <div className="w-full h-full rounded-full overflow-hidden bg-gray-100">
+                    {/* Using placeholder for category images as they aren't in Sanity yet */}
                     <img src={cat.img} alt={cat.name} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" />
                   </div>
                 </div>
@@ -200,7 +225,7 @@ export default function Shop() {
               <button onClick={() => setIsSidebarOpen(false)}><X size={24}/></button>
             </div>
 
-            {/* Filters Groups */}
+            {/* Availability */}
             <div>
               <h3 className="font-serif text-lg mb-4 cursor-pointer">Availability</h3>
               <ul className="space-y-3">
@@ -216,6 +241,7 @@ export default function Shop() {
             </div>
             <div className="w-full h-px bg-[#E5E5E5]"></div>
 
+            {/* Price */}
             <div>
               <h3 className="font-serif text-lg mb-4 cursor-pointer">Price</h3>
               <ul className="space-y-3">
@@ -231,6 +257,7 @@ export default function Shop() {
             </div>
             <div className="w-full h-px bg-[#E5E5E5]"></div>
 
+            {/* Material */}
             <div>
               <h3 className="font-serif text-lg mb-4 cursor-pointer">Material</h3>
               <ul className="space-y-3">
@@ -243,42 +270,6 @@ export default function Shop() {
                   </li>
                 ))}
               </ul>
-            </div>
-            <div className="w-full h-px bg-[#E5E5E5]"></div>
-
-            <div>
-              <h3 className="font-serif text-lg mb-4 cursor-pointer">Stone Colour</h3>
-              <ul className="space-y-3">
-                {[
-                  { name: "Blue", color: "#A7C7E7" },
-                  { name: "Pink", color: "#F4C2C2" },
-                  { name: "White", color: "#FFFFFF" },
-                ].map((item) => (
-                  <li key={item.name} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleFilter(item.name, selectedStoneColor, setSelectedStoneColor)}>
-                    <div className={`w-6 h-6 rounded-full border flex items-center justify-center ${selectedStoneColor.includes(item.name) ? "border-[#1A1A1A] scale-110" : "border-[#E5E5E5]"}`} style={{backgroundColor: item.color}}>
-                       {selectedStoneColor.includes(item.name) && <Check size={12} className={item.name === "White" ? "text-black" : "text-white"} />}
-                    </div>
-                    <span className={`text-sm ${selectedStoneColor.includes(item.name) ? "text-[#1A1A1A] font-bold" : "text-[#555]"}`}>{item.name}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="w-full h-px bg-[#E5E5E5]"></div>
-
-            <div>
-              <h3 className="font-serif text-lg mb-4 cursor-pointer">Size</h3>
-              <div className="flex flex-wrap gap-2">
-                {["5", "6", "7", "8", "9", "10"].map((item) => (
-                  <button 
-                    key={item} 
-                    onClick={() => toggleFilter(item, selectedSize, setSelectedSize)}
-                    className={`w-10 h-10 border text-sm transition-colors flex items-center justify-center
-                      ${selectedSize.includes(item) ? "border-[#1A1A1A] bg-[#1A1A1A] text-white" : "border-[#E5E5E5] text-[#555] hover:border-[#1A1A1A]"}`}
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
             </div>
           </aside>
 
@@ -332,59 +323,72 @@ export default function Shop() {
               </div>
             </div>
 
-            {filteredProducts.length === 0 && (
+            {loading ? (
+               <div className="flex justify-center py-20">
+                 <div className="w-10 h-10 border-4 border-[#B87E58] border-t-transparent rounded-full animate-spin"></div>
+               </div>
+            ) : filteredProducts.length === 0 ? (
               <div className="py-20 text-center text-[#555]">
                 <p className="text-lg">No products match your filters.</p>
                 <button onClick={clearAllFilters} className="mt-4 border-b border-[#1A1A1A] text-[#1A1A1A] font-bold pb-1">Clear all filters</button>
               </div>
+            ) : (
+              <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'} gap-x-8 gap-y-12`}>
+                {filteredProducts.map((product) => (
+                  <Link href={`/product/${product.slug.current}`} key={product._id} className={`group cursor-pointer ${viewMode === 'list' ? 'flex gap-8 items-center' : ''}`}>
+                    
+                    <div className={`relative bg-[#F9F9F9] aspect-[4/5] ${viewMode === 'list' ? 'w-1/3' : 'w-full'} overflow-hidden mb-4`}>
+                      {product.badge && (
+                        <span className={`absolute top-0 left-0 text-[10px] font-bold text-white px-3 py-1.5 z-10 tracking-widest uppercase bg-[#A89160]`}>
+                          {product.badge}
+                        </span>
+                      )}
+
+                      <div className="w-full h-full p-8 flex items-center justify-center relative">
+                         {/* Render Real Image */}
+                        <img src={getImageUrl(product.image)} alt={product.name} className="max-w-full max-h-full object-contain transition-transform duration-700 group-hover:scale-110 mix-blend-multiply" />
+                      </div>
+
+                      {/* Hover Actions */}
+                      <div className="absolute top-4 right-4 flex flex-col gap-2 translate-x-10 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300 z-20">
+                        <button className="bg-white text-[#1A1A1A] w-10 h-10 flex items-center justify-center hover:bg-[#A89160] hover:text-white transition-colors shadow-sm"><Heart size={18} strokeWidth={1.5} /></button>
+                        
+                        {/* Quick Add To Cart */}
+                        <button 
+                          onClick={(e) => handleQuickAdd(e, product)}
+                          className="bg-white text-[#1A1A1A] w-10 h-10 flex items-center justify-center hover:bg-[#A89160] hover:text-white transition-colors shadow-sm"
+                        >
+                          <ShoppingBag size={18} strokeWidth={1.5} />
+                        </button>
+                        
+                        <button className="bg-white text-[#1A1A1A] w-10 h-10 flex items-center justify-center hover:bg-[#A89160] hover:text-white transition-colors shadow-sm"><Eye size={18} strokeWidth={1.5} /></button>
+                      </div>
+                    </div>
+
+                    <div className={`text-left ${viewMode === 'list' ? 'flex-1' : ''}`}>
+                      <h3 className="text-base font-serif text-[#1A1A1A] mb-1 leading-snug group-hover:text-[#A89160] transition-colors">{product.name}</h3>
+                      <div className="flex items-center gap-3 text-sm font-medium mb-2">
+                        <span className={product.oldPrice ? "text-[#D85C5C]" : "text-[#1A1A1A]"}>{formatPrice(product.price)}</span>
+                        {product.oldPrice && <span className="text-[#999] line-through decoration-1">{formatPrice(product.oldPrice)}</span>}
+                      </div>
+                      <p className={`text-[10px] font-bold uppercase tracking-widest ${product.stock && product.stock > 0 ? "text-[#555]" : "text-red-500"}`}>
+                        {product.stock && product.stock > 0 ? "In Stock" : "Out of Stock"}
+                      </p>
+                    </div>
+
+                  </Link>
+                ))}
+              </div>
             )}
 
-            <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'} gap-x-8 gap-y-12`}>
-              {filteredProducts.map((product) => (
-                // --- THIS IS THE FIX: WRAPPED IN LINK ---
-                <Link href={`/products/${product.id}`} key={product.id} className={`group cursor-pointer ${viewMode === 'list' ? 'flex gap-8 items-center' : ''}`}>
-                  
-                  <div className={`relative bg-[#F9F9F9] aspect-[4/5] ${viewMode === 'list' ? 'w-1/3' : 'w-full'} overflow-hidden mb-4`}>
-                    {product.badge && (
-                      <span className={`absolute top-0 left-0 text-[10px] font-bold text-white px-3 py-1.5 z-10 tracking-widest uppercase ${product.badgeColor}`}>
-                        {product.badge}
-                      </span>
-                    )}
-
-                    <div className="w-full h-full p-8 flex items-center justify-center relative">
-                      <img src={product.img} alt={product.name} className="max-w-full max-h-full object-contain transition-opacity duration-500 group-hover:opacity-0" />
-                      <img src={product.hoverImg} alt={product.name} className="absolute inset-0 w-full h-full object-contain p-8 opacity-0 transition-opacity duration-500 group-hover:opacity-100 mix-blend-multiply" />
-                    </div>
-
-                    <div className="absolute top-4 right-4 flex flex-col gap-2 translate-x-10 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300 z-20">
-                      <button className="bg-white text-[#1A1A1A] w-10 h-10 flex items-center justify-center hover:bg-[#A89160] hover:text-white transition-colors shadow-sm"><Heart size={18} strokeWidth={1.5} /></button>
-                      <button className="bg-white text-[#1A1A1A] w-10 h-10 flex items-center justify-center hover:bg-[#A89160] hover:text-white transition-colors shadow-sm"><ShoppingBag size={18} strokeWidth={1.5} /></button>
-                      <button className="bg-white text-[#1A1A1A] w-10 h-10 flex items-center justify-center hover:bg-[#A89160] hover:text-white transition-colors shadow-sm"><Eye size={18} strokeWidth={1.5} /></button>
-                    </div>
-                  </div>
-
-                  <div className={`text-left ${viewMode === 'list' ? 'flex-1' : ''}`}>
-                    <h3 className="text-base font-serif text-[#1A1A1A] mb-1 leading-snug">{product.name}</h3>
-                    <div className="flex items-center gap-3 text-sm font-medium mb-2">
-                      <span className={product.oldPrice ? "text-[#D85C5C]" : "text-[#1A1A1A]"}>{formatPrice(product.price)}</span>
-                      {product.oldPrice && <span className="text-[#999] line-through decoration-1">{formatPrice(product.oldPrice)}</span>}
-                    </div>
-                    {product.status && (
-                      <p className={`text-[10px] font-bold uppercase tracking-widest ${product.statusColor || "text-[#555]"}`}>{product.status}</p>
-                    )}
-                  </div>
-
-                </Link>
-              ))}
-            </div>
-
-            <div className="flex items-center justify-end gap-2 mt-20">
-              <button className="w-10 h-10 flex items-center justify-center border border-[#E5E5E5] hover:border-[#1A1A1A] transition-colors"><ChevronLeft size={16}/></button>
-              <button className="w-10 h-10 flex items-center justify-center bg-[#1A1A1A] text-white font-bold text-sm">1</button>
-              <button className="w-10 h-10 flex items-center justify-center border border-[#E5E5E5] hover:border-[#1A1A1A] transition-colors text-sm font-bold text-[#555]">2</button>
-              <button className="w-10 h-10 flex items-center justify-center border border-[#E5E5E5] hover:border-[#1A1A1A] transition-colors text-sm font-bold text-[#555]">3</button>
-              <button className="w-10 h-10 flex items-center justify-center border border-[#E5E5E5] hover:border-[#1A1A1A] transition-colors"><ChevronRight size={16}/></button>
-            </div>
+            {/* Pagination UI (Static for now) */}
+            {filteredProducts.length > 0 && (
+              <div className="flex items-center justify-end gap-2 mt-20">
+                <button className="w-10 h-10 flex items-center justify-center border border-[#E5E5E5] hover:border-[#1A1A1A] transition-colors"><ChevronLeft size={16}/></button>
+                <button className="w-10 h-10 flex items-center justify-center bg-[#1A1A1A] text-white font-bold text-sm">1</button>
+                <button className="w-10 h-10 flex items-center justify-center border border-[#E5E5E5] hover:border-[#1A1A1A] transition-colors"><ChevronRight size={16}/></button>
+              </div>
+            )}
 
           </div>
         </div>

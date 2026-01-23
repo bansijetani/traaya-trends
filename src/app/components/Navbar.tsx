@@ -3,28 +3,25 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Search, ShoppingBag, User, ArrowUpRight, Menu, X, ChevronDown } from "lucide-react";
+import { useCart } from "@/context/CartContext"; // <--- Import the Hook
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Get the real number from the Global Brain
+  const { totalItems } = useCart(); 
 
   return (
     <header className="fixed top-0 left-0 w-full z-[100] shadow-sm bg-[#FDFBF7]">
       
-      {/* 1. TOP BAR (Updated to match reference image) */}
+      {/* 1. TOP BAR */}
       <div className="bg-[#8B7E58] text-white px-4 py-2.5 text-[10px] md:text-[11px] font-medium tracking-widest uppercase relative z-50">
         <div className="flex justify-center items-center gap-4 md:gap-6 w-full text-center">
-          
-          {/* Shipping Text */}
           <span>Complimentary Shipping on Orders Above $200</span>
-          
-          {/* Separator (Hidden on very small screens) */}
           <span className="hidden md:inline text-white/60">—</span>
-          
-          {/* Shop Now Link with Underline and Arrow */}
           <Link href="/shop" className="flex items-center gap-1 hover:text-white/80 transition-opacity whitespace-nowrap border-b border-white pb-0.5 leading-none">
             Shop Now <ArrowUpRight size={10} className="mb-0.5" />
           </Link>
-
         </div>
       </div>
 
@@ -64,11 +61,20 @@ export default function Navbar() {
           {/* Right Icons */}
           <div className="flex items-center gap-4 md:gap-6 text-[#1A1A1A]">
             <Search size={20} className="hidden md:block cursor-pointer hover:text-[#8B7E58]" strokeWidth={1.5} />
-            <User size={20} className="hidden md:block cursor-pointer hover:text-[#8B7E58]" strokeWidth={1.5} />
-            <div className="relative cursor-pointer hover:text-[#8B7E58]">
+            <Link href="/account">
+               <User size={20} className="hidden md:block cursor-pointer hover:text-[#8B7E58]" strokeWidth={1.5} />
+            </Link>
+            
+            {/* DYNAMIC CART ICON */}
+            <Link href="/cart" className="relative cursor-pointer hover:text-[#8B7E58]">
               <ShoppingBag size={20} strokeWidth={1.5} />
-              <span className="absolute -top-1.5 -right-2 bg-[#8B7E58] text-white text-[9px] w-4 h-4 flex items-center justify-center rounded-full">0</span>
-            </div>
+              {totalItems > 0 && (
+                <span className="absolute -top-1.5 -right-2 bg-[#8B7E58] text-white text-[9px] w-4 h-4 flex items-center justify-center rounded-full animate-in zoom-in">
+                  {totalItems}
+                </span>
+              )}
+            </Link>
+
           </div>
         </div>
       </nav>

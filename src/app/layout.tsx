@@ -1,25 +1,14 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Jost } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
+import { CartProvider } from "@/context/CartContext"; // <--- Import the Provider
 
-const playfair = Playfair_Display({ 
-  subsets: ["latin"], 
-  weight: ["400", "500", "600", "700"],
-  style: ['normal', 'italic'],
-  variable: "--font-playfair",
-  display: "swap",
-});
-
-const jost = Jost({ 
-  subsets: ["latin"], 
-  weight: ["300", "400", "500"], 
-  variable: "--font-jost",
-  display: "swap",
-});
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
 
 export const metadata: Metadata = {
-  title: "Vemus Clone",
-  description: "Luxury Jewelry",
+  title: "Tyaara Trends",
+  description: "Luxury Jewelry Store",
 };
 
 export default function RootLayout({
@@ -29,8 +18,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${playfair.variable} ${jost.variable} font-sans antialiased bg-vemus-bg text-vemus-black`}>
-        {children}
+      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
+        {/* Wrap the children with the CartProvider */}
+        <CartProvider>
+           {children}
+        </CartProvider>
       </body>
     </html>
   );
