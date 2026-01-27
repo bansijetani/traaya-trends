@@ -17,6 +17,7 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [zip, setZip] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Prevent Hydration Mismatch
@@ -30,30 +31,41 @@ export default function CheckoutPage() {
 
   // --- HANDLERS ---
   const handlePlaceOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); // 👈 Prevents the page from refreshing
     setLoading(true);
-
-    // Simulate API Call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // Create the Order Object
+  
     const orderData = {
-        orderNumber: `TY-${Math.floor(100000 + Math.random() * 900000)}`, // Random 6-digit ID
-        date: new Date().toLocaleDateString(),
+        // 👇 CHANGE THIS: Use your actual state variable names
+        firstName: firstName, 
+        lastName: lastName,
         email: email,
-        address: `${address}, ${city}, ${zip}`,
-        items: items,
-        total: total // Uses the calculated total from your existing code
+        address: address,
+        city: city,
+        zip: zip, // or zipCode, whatever you named it
+        phone: phone,
+        cartItems: items, 
+        total: total, 
     };
 
-    // Save to Local Storage so Success Page can read it
-    localStorage.setItem("latestOrder", JSON.stringify(orderData));
+    try {
+        const response = await fetch("/api/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderData),
+        });
 
-    // Clear the Cart
-    clearCart();
-
-    // Redirect
-    router.push("/order-success");
+        if (response.ok) {
+        localStorage.removeItem("appliedDiscount");
+        // clearCart(); 
+        router.push("/order-success");
+        } else {
+        console.error("Failed to place order");
+        alert("Failed to place order. Please try again.");
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Something went wrong.");
+    }
   };
 
   if (!isClient) return null;
@@ -181,6 +193,8 @@ export default function CheckoutPage() {
                         type="tel" 
                         placeholder="Phone" 
                         required
+                        value={phone} // 👈 Connect to State
+                        onChange={(e) => setPhone(e.target.value)}
                         className="w-full h-12 px-4 border border-[#E5E5E5] rounded-sm outline-none focus:border-[#B87E58] text-sm"
                     />
 

@@ -60,9 +60,9 @@ export default function Shop() {
           oldPrice,
           slug,
           "image": images[0],
-          category,
+          "category": category->name, // 👈 Fetches the name of the referenced category
           stock,
-          details 
+          description
         }`;
         
         const data = await client.fetch(query);
