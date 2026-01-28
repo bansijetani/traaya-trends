@@ -13,9 +13,10 @@ export default {
       title: 'Slug',
       type: 'slug',
       options: {
-        source: 'name',
+        source: 'name', // Auto-generate from name
         maxLength: 96,
       },
+      validation: (Rule: any) => Rule.required(),
     },
     {
       name: 'price',
@@ -23,9 +24,10 @@ export default {
       type: 'number',
     },
     {
-      name: 'oldPrice',
-      title: 'Old Price',
-      type: 'number',
+      name: 'salePrice',
+      title: 'Sale Price',
+      type: 'number', 
+      description: 'Optional. If set, the original price will show as crossed out.'
     },
     // 👇 ADDED THIS FIELD TO MATCH YOUR DATA
     {
@@ -45,15 +47,30 @@ export default {
       of: [{ type: 'image' }],
     },
     {
-      name: 'category',
-      title: 'Category',
-      type: 'reference', // 👈 Changed from 'string' to 'reference'
-      to: [{ type: 'category' }], // 👈 Points to your new Category document
+      name: 'gallery',
+      title: 'Product Gallery',
+      type: 'array',
+      of: [{ type: 'image' }],
+      options: {
+        layout: 'grid',
+      },
+    },
+    {
+      name: 'categories',
+      title: 'Categories',
+      type: 'array',
+      of: [{ type: 'reference', to: { type: 'category' } }],
     },
     {
       name: 'stock',
       title: 'Stock',
       type: 'number',
+    },
+    {
+        name: 'addedBy',
+        title: 'Added By',
+        type: 'string',
+        readOnly: true, // Optional: Makes it uneditable in Sanity Studio
     },
   ],
 }
