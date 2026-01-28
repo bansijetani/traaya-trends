@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, ShoppingCart, Users, Package, Settings, LogOut, User, List } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Users, Package, Settings, LogOut, User, List, Palette } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation"; 
 import { useSession, signOut } from "next-auth/react";
@@ -15,6 +15,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: "Customers", href: "/admin/customers", icon: Users },
     { name: "Products", href: "/admin/products", icon: Package },
     { name: "Categories", href: "/admin/categories", icon: List },
+    { name: "Themes", href: "/admin/theme", icon: Palette },
     { name: "Settings", href: "/admin/settings", icon: Settings },
   ];
 
