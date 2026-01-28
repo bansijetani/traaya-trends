@@ -1,7 +1,43 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, Loader2, Upload, Layout, Palette, Image as ImageIcon, CheckCircle, AlertCircle, Link as LinkIcon, Plus, Trash2, Edit3, X, FolderPlus, AlertTriangle } from "lucide-react";
+import { 
+  Save, 
+  Loader2, 
+  Upload, 
+  Layout, 
+  Palette, 
+  Image as ImageIcon, 
+  CheckCircle, 
+  AlertCircle, 
+  Link as LinkIcon, 
+  Plus, 
+  Trash2, 
+  Edit3, 
+  X, 
+  AlertTriangle 
+} from "lucide-react";
+
+// 👇 Define strict types to satisfy TypeScript
+interface MenuItem {
+  label: string;
+  href: string;
+  _key?: string;
+}
+
+interface Menu {
+  _id: string;
+  title: string;
+  items: MenuItem[];
+}
+
+interface ThemeData {
+  siteName: string;
+  primaryColor: string;
+  secondaryColor: string;
+  backgroundColor: string;
+  logo: File | null;
+}
 
 export default function ThemeSettingsPage() {
   const [activeTab, setActiveTab] = useState<"appearance" | "navigation">("appearance");
@@ -11,18 +47,18 @@ export default function ThemeSettingsPage() {
 
   // --- THEME STATE ---
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [themeData, setThemeData] = useState({
+  const [themeData, setThemeData] = useState<ThemeData>({
     siteName: "",
     primaryColor: "#1A1A1A",
     secondaryColor: "#B87E58",
     backgroundColor: "#FFFFFF",
-    logo: null as File | null,
+    logo: null,
   });
 
   // --- MENU STATE ---
-  const [menus, setMenus] = useState<any[]>([]); 
+  const [menus, setMenus] = useState<Menu[]>([]); 
   const [selectedMenuId, setSelectedMenuId] = useState<string>(""); 
-  const [menuItems, setMenuItems] = useState<any[]>([]); 
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]); 
 
   // --- MODAL STATES ---
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -70,6 +106,7 @@ export default function ThemeSettingsPage() {
         // 3. Categories
         const catRes = await fetch("/api/categories");
         const catData = await catRes.json();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setCategories(catData.map((c: any) => c.name).sort());
 
         setLoading(false);
@@ -91,12 +128,12 @@ export default function ThemeSettingsPage() {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const selectMenu = (menu: any) => {
       setSelectedMenuId(menu._id);
       setMenuItems(menu.items || []);
   };
 
-  // --- THEME HANDLERS ---
   const handleThemeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setThemeData({ ...themeData, [e.target.name]: e.target.value });
   };
@@ -109,7 +146,6 @@ export default function ThemeSettingsPage() {
     }
   };
 
-  // --- MENU ACTIONS ---
   const submitNewMenu = async () => {
       if (!newMenuTitle.trim()) return;
       
@@ -150,7 +186,6 @@ export default function ThemeSettingsPage() {
       setSaving(false);
   };
 
-  // --- SAVE HANDLER ---
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -180,7 +215,6 @@ export default function ThemeSettingsPage() {
     }
   };
 
-  // --- LINK BUILDER LOGIC ---
   const handleSmartSelection = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     if (!value) return;
@@ -310,7 +344,7 @@ export default function ThemeSettingsPage() {
                         <label className="block text-xs font-bold text-gray-500 mb-2">Logo</label>
                         <div className="flex items-center gap-4">
                             <div className="w-20 h-20 bg-gray-50 border border-gray-200 rounded-md flex items-center justify-center overflow-hidden relative">
-                                {logoPreview ? <img src={logoPreview} className="w-full h-full object-contain p-2" /> : <ImageIcon className="text-gray-300" />}
+                                {logoPreview ? <img src={logoPreview} className="w-full h-full object-contain p-2" alt="Logo Preview" /> : <ImageIcon className="text-gray-300" />}
                             </div>
                             <label className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md text-xs font-bold uppercase cursor-pointer hover:bg-gray-50 transition-colors">
                                 <Upload size={14} className="inline mr-2"/> Upload
@@ -332,8 +366,22 @@ export default function ThemeSettingsPage() {
                          <div key={colorKey}>
                             <label className="block text-xs font-bold text-gray-500 mb-2 capitalize">{colorKey.replace('Color', ' Color')}</label>
                             <div className="flex items-center gap-3">
-                                <input type="color" name={colorKey} value={(themeData as any)[colorKey]} onChange={handleThemeChange} className="w-10 h-10 rounded border border-gray-200 cursor-pointer p-0 overflow-hidden" />
-                                <input type="text" name={colorKey} value={(themeData as any)[colorKey]} onChange={handleThemeChange} className="flex-1 p-2 border border-gray-200 rounded text-sm uppercase font-mono" />
+                                <input 
+                                  type="color" 
+                                  name={colorKey} 
+                                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                  value={(themeData as any)[colorKey]} 
+                                  onChange={handleThemeChange} 
+                                  className="w-10 h-10 rounded border border-gray-200 cursor-pointer p-0 overflow-hidden" 
+                                />
+                                <input 
+                                  type="text" 
+                                  name={colorKey} 
+                                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                  value={(themeData as any)[colorKey]} 
+                                  onChange={handleThemeChange} 
+                                  className="flex-1 p-2 border border-gray-200 rounded text-sm uppercase font-mono" 
+                                />
                             </div>
                         </div>
                     ))}
