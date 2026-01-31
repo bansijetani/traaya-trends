@@ -29,7 +29,7 @@ export default {
       type: 'number', 
       description: 'Optional. If set, the original price will show as crossed out.'
     },
-    // 👇 ADDED THIS FIELD TO MATCH YOUR DATA
+    // ADDED THIS FIELD TO MATCH YOUR DATA
     {
       name: 'description',
       title: 'Description',
@@ -62,9 +62,31 @@ export default {
       of: [{ type: 'reference', to: { type: 'category' } }],
     },
     {
-      name: 'stock',
-      title: 'Stock',
+      name: 'sku',
+      title: 'SKU (Stock Keeping Unit)',
+      type: 'string',
+      validation: (Rule: any) => Rule.required().error('SKU is required for inventory tracking'),
+    },
+    {
+      name: 'stockLevel',
+      title: 'Stock Quantity',
       type: 'number',
+      initialValue: 0,
+      validation: (Rule: any) => Rule.min(0),
+    },
+    {
+      name: 'stockStatus',
+      title: 'Stock Status',
+      type: 'string',
+      options: {
+        list: [
+          { title: 'In Stock', value: 'instock' },
+          { title: 'Out of Stock', value: 'outstock' },
+          { title: 'Low Stock', value: 'lowstock' },
+        ],
+        layout: 'radio' // or 'dropdown'
+      },
+      initialValue: 'instock',
     },
     {
         name: 'addedBy',

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Image as ImageIcon, CheckCircle, XCircle, Plus, Upload, CornerDownRight } from "lucide-react";
+import { ArrowLeft, Loader2, Image as ImageIcon, CheckCircle, XCircle, Plus, CornerDownRight } from "lucide-react";
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -20,6 +20,9 @@ export default function AddProductPage() {
     price: "",
     salePrice: "",
     description: "",
+    //  NEW FIELDS ADDED HERE
+    sku: "",
+    stockLevel: "", 
     categories: [] as string[],
     image: null as File | null,
     gallery: [] as File[],
@@ -111,13 +114,25 @@ export default function AddProductPage() {
     if (!formData.image) {
       showToast("Featured image is required.", "error");
       setLoading(false);
-      return; // Stop submission
+      return; 
+    }
+
+    // Validation for SKU
+    if (!formData.sku) {
+      showToast("SKU is required.", "error");
+      setLoading(false);
+      return; 
     }
 
     const data = new FormData();
     data.append("name", formData.name);
     data.append("slug", formData.slug);
     data.append("price", formData.price);
+    
+    // 👇 NEW FIELDS APPENDED HERE
+    data.append("sku", formData.sku);
+    data.append("stockLevel", formData.stockLevel || "0"); // Default to 0 if empty
+
     if (formData.salePrice) data.append("salePrice", formData.salePrice);
     data.append("description", formData.description);
     
@@ -221,6 +236,45 @@ export default function AddProductPage() {
                     </div>
                 </div>
             </div>
+
+            {/* 👇 NEW INVENTORY SECTION */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <h3 className="font-bold text-sm mb-4">Inventory</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* SKU Input */}
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+                            SKU (Stock Keeping Unit) <span className="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="text"
+                            name="sku" 
+                            placeholder="e.g. RING-001"
+                            value={formData.sku} 
+                            onChange={handleChange}
+                            className="w-full p-3 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#B87E58]" 
+                            required
+                        />
+                    </div>
+
+                    {/* Stock Level Input */}
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+                            Stock Quantity
+                        </label>
+                        <input 
+                            type="number"
+                            name="stockLevel" 
+                            min="0"
+                            placeholder="0"
+                            value={formData.stockLevel} 
+                            onChange={handleChange}
+                            className="w-full p-3 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#B87E58]" 
+                        />
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         {/* RIGHT COLUMN (Sidebar - Settings & Media) */}
@@ -237,7 +291,6 @@ export default function AddProductPage() {
             {/* Categories */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                 <h3 className="font-bold text-sm mb-4">Categories</h3>
-                {/* 👇 Changed h-64 to h-40 for a smaller box */}
                 <div className="border border-gray-200 rounded-md p-3 h-40 overflow-y-auto bg-gray-50 custom-scrollbar">
                     {sortedCategories.length === 0 ? (
                         <p className="text-xs text-gray-400 text-center py-4">No categories found.</p>

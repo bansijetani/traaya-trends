@@ -30,6 +30,9 @@ export default function EditProductPage() {
     slug: "",
     price: "",
     salePrice: "",
+    // 👇 NEW FIELDS ADDED
+    sku: "",
+    stockLevel: "",
     categories: [] as string[],
     description: "",
     image: null as File | null,
@@ -49,11 +52,14 @@ export default function EditProductPage() {
         setCategories(catData);
         setSortedCategories(buildCategoryTree(catData));
 
+        // 👇 UPDATED QUERY: Fetch SKU and StockLevel
         const query = `*[_type == "product" && _id == $id][0] {
           name,
           "slug": slug.current,
           price,
           salePrice,
+          sku,
+          stockLevel,
           addedBy, 
           "selectedCategories": categories[]->_id, 
           description,
@@ -68,6 +74,9 @@ export default function EditProductPage() {
             slug: product.slug || "",
             price: product.price || "",
             salePrice: product.salePrice || "",
+            // 👇 Map new fields
+            sku: product.sku || "",
+            stockLevel: product.stockLevel || 0,
             categories: product.selectedCategories || [],
             description: product.description || "",
             image: null,
@@ -145,11 +154,23 @@ export default function EditProductPage() {
       return;
     }
 
+    // SKU Validation
+    if (!formData.sku) {
+        showToast("SKU is required.", "error");
+        setSaving(false);
+        return;
+    }
+
     const data = new FormData();
     data.append("productId", productId);
     data.append("name", formData.name);
     data.append("slug", formData.slug);
     data.append("price", formData.price);
+
+    // 👇 APPEND NEW FIELDS
+    data.append("sku", formData.sku);
+    data.append("stockLevel", formData.stockLevel.toString());
+
     if (formData.salePrice) data.append("salePrice", formData.salePrice);
     data.append("description", formData.description);
     
@@ -164,7 +185,6 @@ export default function EditProductPage() {
       if (res.ok) {
         showToast("Product updated successfully!", "success");
         setTimeout(() => {
-            router.push("/admin/products");
             router.refresh();
         }, 1500);
       } else {
@@ -202,7 +222,6 @@ export default function EditProductPage() {
         </button>
 
         <div className="flex items-center gap-4">
-             {/* 👇 NEW: Add Product Button in Edit Page */}
             <button 
                 type="button"
                 onClick={() => router.push("/admin/products/add")}
@@ -244,6 +263,44 @@ export default function EditProductPage() {
                     <div>
                         <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Sale Price</label>
                         <input type="number" name="salePrice" value={formData.salePrice} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#B87E58]" />
+                    </div>
+                </div>
+            </div>
+
+            {/* 👇 NEW INVENTORY SECTION */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <h3 className="font-bold text-sm mb-4">Inventory</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* SKU Input */}
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+                            SKU (Stock Keeping Unit) <span className="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="text"
+                            name="sku" 
+                            placeholder="e.g. RING-001"
+                            value={formData.sku} 
+                            onChange={handleChange}
+                            className="w-full p-3 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#B87E58]" 
+                            required
+                        />
+                    </div>
+
+                    {/* Stock Level Input */}
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+                            Stock Quantity
+                        </label>
+                        <input 
+                            type="number"
+                            name="stockLevel" 
+                            min="0"
+                            placeholder="0"
+                            value={formData.stockLevel} 
+                            onChange={handleChange}
+                            className="w-full p-3 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#B87E58]" 
+                        />
                     </div>
                 </div>
             </div>

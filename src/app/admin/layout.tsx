@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, ShoppingCart, Users, Package, Settings, LogOut, User, List, Palette } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Users, Package, Settings, LogOut, User, List, Palette, ClipboardList, TicketPercent } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation"; 
 import { useSession, signOut } from "next-auth/react";
@@ -14,6 +14,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
     { name: "Customers", href: "/admin/customers", icon: Users },
     { name: "Products", href: "/admin/products", icon: Package },
+    { name: "Inventory", href: "/admin/inventory", icon: ClipboardList },
+    { name: "Coupons", href: "/admin/coupons", icon: TicketPercent },
     { name: "Categories", href: "/admin/categories", icon: List },
     { name: "Themes", href: "/admin/theme", icon: Palette },
     { name: "Settings", href: "/admin/settings", icon: Settings },
@@ -32,7 +34,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           
           {/* Logo Area */}
           <div className="p-8 border-b border-gray-100">
-            <h1 className="font-serif text-2xl font-bold text-[#1A1A1A]">TYAARA <br/><span className="text-gray-400 text-lg">ADMIN</span></h1>
+            <h1 className="font-serif text-2xl font-bold text-[#1A1A1A]">TRAAYA <br/><span className="text-gray-400 text-lg">ADMIN</span></h1>
           </div>
 
           {/* Navigation Links */}

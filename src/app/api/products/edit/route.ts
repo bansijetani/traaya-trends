@@ -14,83 +14,85 @@ const client = createClient({
 export async function PUT(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const currentUser = session?.user?.name || session?.user?.email || "Unknown";
+    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
     const formData = await req.formData();
-    
     const productId = formData.get("productId") as string;
+
+    // 1. Extract Basic Fields
     const name = formData.get("name") as string;
     const slug = formData.get("slug") as string;
-    const price = parseFloat(formData.get("price") as string);
-    const salePriceRaw = formData.get("salePrice") as string;
-    const salePrice = salePriceRaw ? parseFloat(salePriceRaw) : null;
+    const price = Number(formData.get("price"));
+    const salePrice = formData.get("salePrice") ? Number(formData.get("salePrice")) : null;
     const description = formData.get("description") as string;
+    
+    // 👇 2. EXTRACT NEW INVENTORY FIELDS (This was missing!)
+    const sku = formData.get("sku") as string;
+    const stockLevel = Number(formData.get("stockLevel"));
 
-    // 👇 1. Get Multiple Categories
-    const categoryIds = formData.getAll("categories") as string[];
-
+    const categories = formData.getAll("categories") as string[];
     const imageFile = formData.get("image") as File | null;
     const galleryFiles = formData.getAll("gallery") as File[];
 
-    if (!productId) {
-      return NextResponse.json({ message: "Product ID required" }, { status: 400 });
-    }
-
-    // 2. Start Patch
-    let patch = client.patch(productId).set({
+    // 3. Prepare the update object
+    const updates: any = {
       name,
       slug: { _type: "slug", current: slug },
       price,
-      salePrice: salePrice ?? undefined,
+      salePrice,
       description,
-      addedBy: currentUser,
-      // 3. Update Categories Reference Array
-      categories: categoryIds.map(id => ({
-        _type: 'reference',
-        _ref: id
-      }))
-    });
+      sku,        // 👈 Saving SKU
+      stockLevel, // 👈 Saving Stock
+      categories: categories.map((catId) => ({
+        _type: "reference",
+        _ref: catId,
+        _key: catId, // Adding key helps Sanity avoid conflicts
+      })),
+    };
 
-    // 4. Handle Featured Image
+    // 4. Handle Featured Image Update (Only if new one provided)
     if (imageFile && imageFile.size > 0) {
-      console.log("Updating featured image...");
-      const imageAsset = await client.assets.upload('image', imageFile, {
-        contentType: imageFile.type,
-        filename: imageFile.name,
-      });
-      patch = patch.set({
-        image: {
-          _type: "image",
-          asset: { _type: "reference", _ref: imageAsset._id },
-        },
-      });
+      const imageAsset = await client.assets.upload("image", imageFile);
+      updates.image = {
+        _type: "image",
+        asset: { _type: "reference", _ref: imageAsset._id },
+      };
     }
 
-    // 5. Handle Gallery (Append new images)
+    // 5. Handle Gallery Update (Append new images to existing)
     if (galleryFiles.length > 0) {
-      console.log(`Appending ${galleryFiles.length} images to gallery...`);
-      const newGalleryAssets = await Promise.all(
-        galleryFiles.map(async (file) => {
-          const asset = await client.assets.upload('image', file, {
-            contentType: file.type,
-            filename: file.name,
-          });
-          return {
-            _type: "image",
-            _key: asset._id,
-            asset: { _type: "reference", _ref: asset._id },
-          };
-        })
-      );
-      patch = patch.setIfMissing({ gallery: [] }).append('gallery', newGalleryAssets);
+        const galleryAssets = await Promise.all(
+            galleryFiles.map(file => client.assets.upload("image", file))
+        );
+        
+        // We use client.patch().setIfMissing().append() pattern usually, 
+        // but here we are simplifying to just append to the list via the main patch if possible,
+        // or we need a separate operation. To keep it simple in one go:
+        // We will fetch existing, or just use `insert` in the patch below.
     }
 
-    const updatedProduct = await patch.commit();
+    // 6. Execute the Update
+    const patch = client.patch(productId).set(updates);
 
-    return NextResponse.json({ message: "Product updated", product: updatedProduct }, { status: 200 });
+    // If there are new gallery images, append them
+    if (galleryFiles.length > 0) {
+         const galleryAssets = await Promise.all(
+            galleryFiles.map(file => client.assets.upload("image", file))
+        );
+        const newGalleryObjects = galleryAssets.map(asset => ({
+            _type: 'image',
+            _key: asset._id,
+            asset: { _type: 'reference', _ref: asset._id }
+        }));
+        // Append to end of gallery array
+        patch.setIfMissing({ gallery: [] }).append('gallery', newGalleryObjects);
+    }
 
+    await patch.commit();
+
+    return NextResponse.json({ message: "Product updated successfully" });
   } catch (error) {
-    console.error("Update Error:", error);
+    console.error("Error updating product:", error);
     return NextResponse.json({ message: "Error updating product" }, { status: 500 });
   }
 }

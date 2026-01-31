@@ -13,106 +13,64 @@ const client = createClient({
 
 export async function POST(req: Request) {
   try {
-    const formData = await req.formData();
-
     const session = await getServerSession(authOptions);
-    if (!session || !session.user?.email) {
-        return NextResponse.json({ message: "Unauthorized: You must be logged in." }, { status: 401 });
-    }
-    const currentUser = session.user?.name || session.user?.email || "Unknown";
+    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    const formData = await req.formData();
     
-    // Extract Basic Fields
+    // Extract Fields
     const name = formData.get("name") as string;
-    const baseSlug = formData.get("slug") as string; // 👈 Get the requested slug
-    const price = parseFloat(formData.get("price") as string);
-    const salePriceRaw = formData.get("salePrice") as string;
-    const salePrice = salePriceRaw ? parseFloat(salePriceRaw) : undefined;
+    const slug = formData.get("slug") as string;
+    const price = Number(formData.get("price"));
+    const salePrice = formData.get("salePrice") ? Number(formData.get("salePrice")) : null;
     const description = formData.get("description") as string;
+    
+    // 👇 NEW FIELDS
+    const sku = formData.get("sku") as string;
+    const stockLevel = Number(formData.get("stockLevel")) || 0;
 
-    const categoryIds = formData.getAll("categories") as string[];
-
-    // Extract Images
-    const imageFile = formData.get("image") as File;
+    const categories = formData.getAll("categories") as string[];
+    const imageFile = formData.get("image") as File; // Required
     const galleryFiles = formData.getAll("gallery") as File[];
 
-    if (!name || !baseSlug || !imageFile) {
-      return NextResponse.json({ message: "Name, Slug, and Featured Image are required" }, { status: 400 });
-    }
-
-    // ---------------------------------------------------------
-    // 🔍 SLUG UNIQUENESS CHECK
-    // ---------------------------------------------------------
-    let finalSlug = baseSlug;
-    let counter = 1;
-
-    // Loop until we find a slug that DOES NOT exist
-    while (true) {
-      const existingProduct = await client.fetch(
-        `*[_type == "product" && slug.current == $slug][0]._id`,
-        { slug: finalSlug }
-      );
-
-      if (!existingProduct) {
-        break; // Slug is unique! Exit loop.
-      }
-
-      // If exists, append number (e.g., "gold-ring" -> "gold-ring-1")
-      finalSlug = `${baseSlug}-${counter}`;
-      counter++;
-    }
-    // ---------------------------------------------------------
-
-    // 1. Upload Featured Image
-    console.log("Uploading featured image...");
-    const imageAsset = await client.assets.upload('image', imageFile, {
-      contentType: imageFile.type,
-      filename: imageFile.name,
-    });
+    // 1. Upload Main Image
+    const imageAsset = await client.assets.upload("image", imageFile);
 
     // 2. Upload Gallery Images
-    console.log(`Uploading ${galleryFiles.length} gallery images...`);
     const galleryAssets = await Promise.all(
-      galleryFiles.map(async (file) => {
-        const asset = await client.assets.upload('image', file, {
-          contentType: file.type,
-          filename: file.name,
-        });
-        return {
-          _type: "image",
-          _key: asset._id,
-          asset: {
-            _type: "reference",
-            _ref: asset._id,
-          },
-        };
-      })
+      galleryFiles.map((file) => client.assets.upload("image", file))
     );
 
-    // 3. Create Product (Using finalSlug)
-    console.log(`Saving product with slug: ${finalSlug}`);
-    const newProduct = await client.create({
+    // 3. Create Document
+    await client.create({
       _type: "product",
       name,
-      slug: { _type: "slug", current: finalSlug }, // 👈 Save the unique slug
+      slug: { _type: "slug", current: slug },
       price,
       salePrice,
-      categories: categoryIds.map((id) => ({
-        _type: 'reference',
-        _ref: id,
-      })),
       description,
+      sku,        // Saving SKU
+      stockLevel, // Saving Stock
+      categories: categories.map((id) => ({
+        _type: "reference",
+        _ref: id,
+        _key: id,
+      })),
       image: {
         _type: "image",
         asset: { _type: "reference", _ref: imageAsset._id },
       },
-      addedBy: currentUser,
-      gallery: galleryAssets,
+      gallery: galleryAssets.map((asset) => ({
+        _type: "image",
+        _key: asset._id,
+        asset: { _type: "reference", _ref: asset._id },
+      })),
+      addedBy: session.user?.email || "Admin", // Track who added it
     });
 
-    return NextResponse.json({ message: "Success", product: newProduct }, { status: 201 });
-
+    return NextResponse.json({ message: "Product created successfully" });
   } catch (error) {
-    console.error("Add Product Error:", error);
-    return NextResponse.json({ message: "Error saving product" }, { status: 500 });
+    console.error("Error creating product:", error);
+    return NextResponse.json({ message: "Error creating product" }, { status: 500 });
   }
 }

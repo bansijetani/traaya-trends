@@ -1,3 +1,4 @@
+import { defineField } from "sanity";
 export default {
   name: 'order',
   title: 'Order',
@@ -59,6 +60,17 @@ export default {
         }
       ]
     },
+    defineField({
+      name: 'discount',
+      title: 'Discount Amount',
+      type: 'number',
+      initialValue: 0
+    }),
+    defineField({
+      name: 'couponCode',
+      title: 'Coupon Code Used',
+      type: 'string'
+    }),
     {
       name: 'total',
       title: 'Total Amount',
