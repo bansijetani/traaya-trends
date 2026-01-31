@@ -1,3 +1,5 @@
+import { defineField } from "sanity";
+
 export const userSchema = {
   name: 'user',
   title: 'User',
@@ -32,5 +34,17 @@ export const userSchema = {
       },
       initialValue: 'customer',
     },
+    defineField({
+      name: 'isVerified',
+      title: 'Is Email Verified?',
+      type: 'boolean',
+      initialValue: false,
+    }),
+    defineField({
+      name: 'verificationToken',
+      title: 'Verification Token',
+      type: 'string',
+      hidden: true, // Hide from Admin UI so it's not tampered with
+    }),
   ],
 };

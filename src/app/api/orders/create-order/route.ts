@@ -1,33 +1,29 @@
 import { createClient } from "next-sanity";
 import { NextResponse } from "next/server";
+import { Resend } from 'resend';
+import { generateEmailHtml } from "@/lib/email-template";
 
+// 1. Init Sanity Client
 const client = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
-  useCdn: false, // Important for real-time stock updates
+  useCdn: false,
   token: process.env.SANITY_API_TOKEN,
   apiVersion: "2023-01-01",
 });
 
+// 2. Init Resend (Email Service)
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 export async function POST(req: Request) {
   try {
-    // 1. Read data from your Checkout Form
     const body = await req.json();
     const { 
-        firstName, 
-        lastName, 
-        email, 
-        address, 
-        city, 
-        zip, 
-        phone, 
-        cartItems, 
-        couponCode,
-        discount, 
-        total 
+        firstName, lastName, email, address, city, zip, phone, 
+        cartItems, couponCode, discount, total 
     } = body;
 
-    // 2. Validate Coupon (Before creating order)
+    // --- A. VALIDATE COUPON ---
     if (couponCode) {
         const coupon = await client.fetch(
             `*[_type == "coupon" && code == $code][0]`, 
@@ -37,19 +33,17 @@ export async function POST(req: Request) {
         if (!coupon || !coupon.isActive) {
             return NextResponse.json({ message: "Invalid Coupon" }, { status: 400 });
         }
-
         if (coupon.usedBy && coupon.usedBy.includes(email)) {
             return NextResponse.json({ message: "Coupon already used by this email" }, { status: 400 });
         }
     }
 
-    // 👇 NEW: Generate Order Number HERE so we can return it later
+    // --- B. CREATE ORDER IN SANITY ---
     const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-    // 3. Prepare Order Object
     const orderObject = {
       _type: 'order',
-      orderNumber: orderNumber, // 👈 Use the variable we created above
+      orderNumber: orderNumber,
       orderDate: new Date().toISOString(),
       customerName: `${firstName} ${lastName}`, 
       email: email,
@@ -68,23 +62,16 @@ export async function POST(req: Request) {
       }))
     };
 
-    // 4. START SANITY TRANSACTION (Order + Stock Update)
     const transaction = client.transaction();
-
-    // A. Create the Order
     transaction.create(orderObject);
-
-    // B. Subtract Stock for every item in cart
+    
     cartItems.forEach((item: any) => {
-        transaction.patch(item.id, (p) => 
-            p.dec({ stockLevel: item.quantity }) 
-        );
+        transaction.patch(item.id, (p) => p.dec({ stockLevel: item.quantity }));
     });
 
-    // 5. Commit (Save) Order & Stock
     const result = await transaction.commit();
 
-    // 6. BURN COUPON (Only if order succeeded)
+    // --- C. BURN COUPON ---
     if (couponCode) {
         const coupon = await client.fetch(`*[_type == "coupon" && code == $code][0]`, { code: couponCode.toUpperCase() });
         if (coupon) {
@@ -95,7 +82,29 @@ export async function POST(req: Request) {
         }
     }
 
-    // 👇 RETURN THE ORDER NUMBER so the frontend can redirect correctly
+    // --- D. SEND CONFIRMATION EMAIL (NEW!) ---
+    try {
+          const emailHtml = generateEmailHtml({
+            subject: `Order Confirmed: ${orderNumber}`,
+            greeting: firstName, // Uses the customer's real name
+            message: `Thank you for your purchase! We have received your order and are getting it ready for shipment.\n\nOrder Total: $${total.toLocaleString()}`,
+            buttonText: "View Your Receipt",
+            buttonUrl: `https://traayatrends.com/order-success?orderNumber=${orderNumber}`
+          });
+
+          await resend.emails.send({
+            from: 'Traaya Trends <orders@traayatrends.com>',
+            to: email,
+            subject: `Order Confirmed: ${orderNumber}`,
+            html: emailHtml, // 👈 Uses the beautiful design automatically
+          });
+        console.log("Email sent successfully to:", email);
+    } catch (emailError) {
+        console.error("Failed to send email:", emailError);
+        // We don't block the order if email fails, just log it
+    }
+
+    // --- E. RETURN SUCCESS ---
     return NextResponse.json({ 
         message: "Order created successfully", 
         orderId: result.transactionId,

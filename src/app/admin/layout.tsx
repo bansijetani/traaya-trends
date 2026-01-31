@@ -1,9 +1,10 @@
 "use client";
 
-import { LayoutDashboard, ShoppingCart, Users, Package, Settings, LogOut, User, List, Palette, ClipboardList, TicketPercent } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Users, Package, Settings, LogOut, User, List, Palette, ClipboardList, TicketPercent, Mail } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation"; 
 import { useSession, signOut } from "next-auth/react";
+import { Toaster } from "react-hot-toast";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname(); 
@@ -16,6 +17,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: "Products", href: "/admin/products", icon: Package },
     { name: "Inventory", href: "/admin/inventory", icon: ClipboardList },
     { name: "Coupons", href: "/admin/coupons", icon: TicketPercent },
+    { name: "Emails", href: "/admin/email", icon: Mail },
     { name: "Categories", href: "/admin/categories", icon: List },
     { name: "Themes", href: "/admin/theme", icon: Palette },
     { name: "Settings", href: "/admin/settings", icon: Settings },
@@ -93,6 +95,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Main Content */}
       <main className="flex-1 p-8 overflow-y-auto">
         {children}
+        <Toaster position="top-right" reverseOrder={false} />
       </main>
     </div>
   );
