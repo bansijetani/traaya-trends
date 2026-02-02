@@ -46,5 +46,17 @@ export const userSchema = {
       type: 'string',
       hidden: true, // Hide from Admin UI so it's not tampered with
     }),
+    defineField({
+      name: 'resetToken',
+      title: 'Reset Token',
+      type: 'string',
+      hidden: true,
+    }),
+    defineField({
+      name: 'resetTokenExpiry',
+      title: 'Token Expiry',
+      type: 'number', // We will store this as a timestamp (Date.now())
+      hidden: true,
+    }),
   ],
 };
