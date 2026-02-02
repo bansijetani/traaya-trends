@@ -1,18 +1,16 @@
 import { createClient } from "next-sanity";
 import { NextResponse } from "next/server";
 import { Resend } from 'resend';
-import { generateEmailHtml } from "@/lib/email-template";
+import { generateEmailHtml, generateAdminEmailHtml } from "@/lib/email-template";
 
-// 1. Init Sanity Client
 const client = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
-  useCdn: false,
+  useCdn: false, // Important: False ensures we get the latest data (new admins)
   token: process.env.SANITY_API_TOKEN,
   apiVersion: "2023-01-01",
 });
 
-// 2. Init Resend (Email Service)
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
@@ -82,26 +80,58 @@ export async function POST(req: Request) {
         }
     }
 
-    // --- D. SEND CONFIRMATION EMAIL (NEW!) ---
+    // --- D. SEND EMAILS (DYNAMIC ADMINS) ---
     try {
-          const emailHtml = generateEmailHtml({
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://traayatrends.vercel.app";
+
+        // 1. Send Customer Receipt (To the buyer)
+        const emailHtml = generateEmailHtml({
             subject: `Order Confirmed: ${orderNumber}`,
-            greeting: firstName, // Uses the customer's real name
+            greeting: firstName,
             message: `Thank you for your purchase! We have received your order and are getting it ready for shipment.\n\nOrder Total: $${total.toLocaleString()}`,
             buttonText: "View Your Receipt",
-            buttonUrl: `https://traayatrends.com/order-success?orderNumber=${orderNumber}`
-          });
+            buttonUrl: `${baseUrl}/order-success?orderNumber=${orderNumber}`
+        });
 
-          await resend.emails.send({
-            from: 'Traaya Trends <orders@traayatrends.com>',
+        await resend.emails.send({
+            from: 'Traaya Trends <onboarding@resend.dev>',
             to: email,
             subject: `Order Confirmed: ${orderNumber}`,
-            html: emailHtml, // 👈 Uses the beautiful design automatically
-          });
-        console.log("Email sent successfully to:", email);
+            html: emailHtml,
+        });
+
+        // 👇 2. FETCH ADMIN EMAILS DYNAMICALLY
+        // Query: Find all users where role is "admin" and return just their email
+        const adminEmails = await client.fetch<string[]>(
+            `*[_type == "user" && role == "admin"].email`
+        );
+
+        if (adminEmails.length > 0) {
+            const adminHtml = generateAdminEmailHtml({
+                orderDetails: {
+                    orderNumber,
+                    customerName: `${firstName} ${lastName}`,
+                    totalAmount: total,
+                    items: cartItems, 
+                    shippingAddress: `${address}, ${city}, ${zip}`
+                }
+            });
+
+            // Send to ALL admins found
+            await resend.emails.send({
+                from: 'Traaya Trends <onboarding@resend.dev>',
+                to: adminEmails, // 👈 Resend accepts an array of strings here!
+                subject: `💰 New Order: ${orderNumber} - $${total}`,
+                html: adminHtml
+            });
+            
+            console.log(`Admin alert sent to ${adminEmails.length} admins:`, adminEmails);
+        } else {
+            console.warn("⚠️ No admins found to notify! Please set role='admin' for a user in Sanity.");
+        }
+
     } catch (emailError) {
         console.error("Failed to send email:", emailError);
-        // We don't block the order if email fails, just log it
     }
 
     // --- E. RETURN SUCCESS ---
