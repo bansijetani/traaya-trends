@@ -4,11 +4,12 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { CheckCircle, ArrowRight, Printer, MapPin, Calendar, TicketPercent, Loader2, Lock } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react"; // 👈 Added Suspense
 import { useSearchParams, useRouter } from "next/navigation";
 import { client } from "@/sanity/lib/client";
 
-export default function OrderSuccessPage() {
+// 👇 1. Move all your logic into this Sub-Component
+function OrderSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderNumber = searchParams.get("orderNumber");
@@ -20,21 +21,19 @@ export default function OrderSuccessPage() {
 
   useEffect(() => {
     if (!orderNumber) {
-        router.push("/");
-        return;
+        // If no order number, wait a tick then redirect (avoids hydration mismatch)
+        const timeout = setTimeout(() => router.push("/"), 100);
+        return () => clearTimeout(timeout);
     }
 
-    // Security Check
-    const storedOrder = localStorage.getItem("latest_order_id");
+    // Security Check: Did this browser place the order?
+    const storedOrder = typeof window !== 'undefined' ? localStorage.getItem("latest_order_id") : null;
     if (storedOrder === orderNumber) {
         setIsVerified(true);
     }
 
     const fetchData = async () => {
       try {
-        // 👇 UPDATED QUERY: 
-        // 1. Fetches the Order
-        // 2. Fetches the Logo from 'settings' OR 'themeSettings' (checks both)
         const query = `{
             "order": *[_type == "order" && orderNumber == $orderNumber][0]{
                 orderNumber,
@@ -65,10 +64,7 @@ export default function OrderSuccessPage() {
         if (data.order) {
             setOrder(data.order);
         }
-        
-        // Set logo if found
         if (data.settings?.logo) {
-            console.log("Found Logo URL:", data.settings.logo); // Debug log
             setLogoUrl(data.settings.logo);
         }
         
@@ -83,51 +79,31 @@ export default function OrderSuccessPage() {
   }, [orderNumber, router]);
 
   if (loading) return (
-    <div className="min-h-screen bg-white flex flex-col font-sans">
-        <Navbar />
-        <div className="flex-1 flex items-center justify-center">
-            <div className="flex items-center gap-3 text-[#1A1A1A]">
-                <Loader2 className="animate-spin" /> Loading Receipt...
-            </div>
+    <div className="flex-1 flex items-center justify-center min-h-[50vh]">
+        <div className="flex items-center gap-3 text-[#1A1A1A]">
+            <Loader2 className="animate-spin" /> Loading Receipt...
         </div>
-        <Footer />
     </div>
   );
 
   if (!order) return (
-     <div className="min-h-screen bg-white flex flex-col font-sans">
-        <Navbar />
-        <div className="flex-1 flex flex-col items-center justify-center gap-4">
-            <h1 className="text-2xl font-serif text-red-500">Order Not Found</h1>
-            <Link href="/" className="underline text-sm hover:text-[#B87E58]">Return Home</Link>
-        </div>
-        <Footer />
+    <div className="flex-1 flex flex-col items-center justify-center gap-4 min-h-[50vh]">
+        <h1 className="text-2xl font-serif text-red-500">Order Not Found</h1>
+        <Link href="/" className="underline text-sm hover:text-[#B87E58]">Return Home</Link>
     </div>
   );
 
   return (
-    <main className="bg-white text-[#1A1A1A] min-h-screen flex flex-col font-sans print:bg-white">
-      
-      {/* 1. HIDE NAVBAR ON PRINT */}
-      <div className="print:hidden">
-        <Navbar />
-      </div>
-
-      <div className="flex-1 flex flex-col items-center justify-center pt-[160px] pb-24 px-4 sm:px-6 max-w-4xl mx-auto w-full text-center print:pt-4 print:pb-4 print:px-0 print:max-w-full">
+    <div className="flex-1 flex flex-col items-center justify-center pt-[160px] pb-24 px-4 sm:px-6 max-w-4xl mx-auto w-full text-center print:pt-4 print:pb-4 print:px-0 print:max-w-full">
         
-        {/* 👇 2. LOGO: Only Render if URL exists, and force Hidden on Web */}
+        {/* LOGO: Print Only */}
         {logoUrl && (
             <div className="hidden print:block mb-6 w-full text-center">
-                <img 
-                    src={logoUrl} 
-                    alt="Brand Logo" 
-                    className="mx-auto w-32 object-contain" 
-                    // 'h-20 w-auto' ensures it doesn't stretch
-                />
+                <img src={logoUrl} alt="Brand Logo" className="mx-auto w-32 object-contain" />
             </div>
         )}
 
-        {/* 3. SUCCESS ICON: HIDDEN ON PRINT */}
+        {/* SUCCESS ICON */}
         <div className="mb-8 animate-in zoom-in duration-700 print:hidden">
           <div className="w-24 h-24 bg-[#E9EFE3] rounded-full flex items-center justify-center mx-auto mb-6 text-[#4CAF50]">
             <CheckCircle size={48} strokeWidth={1.5} />
@@ -146,7 +122,7 @@ export default function OrderSuccessPage() {
           with your order details.
         </p>
 
-        {/* --- ORDER META DATA --- */}
+        {/* ORDER META DATA */}
         <div className="bg-[#F9F9F9] border border-[#E5E5E5] w-full p-8 rounded-sm mb-12 flex flex-col md:flex-row justify-between gap-8 text-left print:bg-white print:border-none print:p-0 print:mb-6 print:grid print:grid-cols-2 print:gap-4">
           
           {/* Order Number */}
@@ -211,7 +187,7 @@ export default function OrderSuccessPage() {
                 {order.items?.map((item: any, index: number) => (
                   <div key={index} className="min-w-[280px] flex gap-4 p-4 border border-[#E5E5E5] bg-white print:border-0 print:border-b print:px-0 print:py-2 print:w-full">
                       
-                      {/* Image: Hidden on print */}
+                      {/* Image */}
                       <div className="w-20 h-20 bg-[#F9F9F9] shrink-0 p-1 relative print:hidden">
                           {item.product?.image ? (
                             <img src={item.product.image} alt={item.product.name} className="w-full h-full object-contain mix-blend-multiply"/>
@@ -236,7 +212,7 @@ export default function OrderSuccessPage() {
             </div>
         </div>
 
-        {/* Buttons: Hidden on Print */}
+        {/* Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center w-full print:hidden">
           <Link href="/products" className="w-full sm:w-auto">
             <button className="w-full sm:w-auto h-14 px-10 bg-[#1A1A1A] text-white text-xs font-bold uppercase tracking-[0.2em] hover:bg-[#B87E58] transition-colors flex items-center justify-center gap-2">
@@ -253,8 +229,27 @@ export default function OrderSuccessPage() {
             </button>
           )}
         </div>
+    </div>
+  );
+}
 
+// 👇 2. Main Page Component (Wraps content in Suspense)
+export default function OrderSuccessPage() {
+  return (
+    <main className="bg-white text-[#1A1A1A] min-h-screen flex flex-col font-sans print:bg-white">
+      <div className="print:hidden">
+        <Navbar />
       </div>
+
+      <Suspense fallback={
+        <div className="flex-1 flex items-center justify-center min-h-[50vh]">
+             <div className="flex items-center gap-3 text-[#1A1A1A]">
+                <Loader2 className="animate-spin" /> Loading Order...
+            </div>
+        </div>
+      }>
+        <OrderSuccessContent />
+      </Suspense>
 
       <div className="print:hidden">
         <Footer />
