@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
-import { CartProvider } from "@/context/CartContext"; // <--- Import the Provider
+import { CartProvider } from "@/context/CartContext";
 import { Providers } from "@/components/providers";
 import ThemeProvider from "@/components/ThemeProvider";
+
+// 👇 IMPORT TOASTER
+import { Toaster } from "react-hot-toast";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
@@ -23,9 +26,13 @@ export default function RootLayout({
       <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
         <Providers>
           <ThemeProvider>
-            {/* Wrap the children with the CartProvider */}
             <CartProvider>
+              
               {children}
+
+              {/* 👇 THIS IS REQUIRED FOR THE POPUP TO SHOW */}
+              <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
+
             </CartProvider>
           </ThemeProvider>
         </Providers>

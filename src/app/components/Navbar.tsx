@@ -1,104 +1,126 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { Search, ShoppingBag, User, ArrowUpRight, Menu, X, ChevronDown } from "lucide-react";
-import { useCart } from "@/context/CartContext"; // <--- Import the Hook
+import { useState, useEffect } from "react";
+import { Search, User, ShoppingBag, Menu, X, Heart } from "lucide-react";
+import { client } from "@/sanity/lib/client"; 
+import { useCart } from "@/context/CartContext"; // 👈 Import Cart Context
 
 export default function Navbar() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [wishlistCount, setWishlistCount] = useState(0);
   
-  // Get the real number from the Global Brain
-  const { totalItems } = useCart(); 
+  // 👇 Get live cart count from context
+  const { cartCount } = useCart(); 
+
+  // Fetch Wishlist Count (Separate logic)
+  useEffect(() => {
+    const fetchWishlistCount = async () => {
+      const userId = localStorage.getItem("user_id") || localStorage.getItem("userId");
+      if (userId) {
+        try {
+          const query = `count(*[_type == "user" && _id == $userId][0].wishlist)`;
+          const count = await client.fetch(query, { userId });
+          setWishlistCount(count || 0);
+        } catch (error) {
+          console.error("Error fetching wishlist count", error);
+        }
+      }
+    };
+
+    fetchWishlistCount();
+    const handleUpdate = () => fetchWishlistCount();
+    window.addEventListener("wishlist-updated", handleUpdate);
+    return () => window.removeEventListener("wishlist-updated", handleUpdate);
+  }, []);
 
   return (
-    <header className="fixed top-0 left-0 w-full z-[100] shadow-sm bg-[#FDFBF7]">
+    <nav className="fixed top-0 left-0 w-full z-50 bg-white border-b border-[#E5E5E5]">
       
-      {/* 1. TOP BAR */}
-      <div className="bg-[#8B7E58] text-white px-4 py-2.5 text-[10px] md:text-[11px] font-medium tracking-widest uppercase relative z-50">
-        <div className="flex justify-center items-center gap-4 md:gap-6 w-full text-center">
-          <span>Complimentary Shipping on Orders Above $200</span>
-          <span className="hidden md:inline text-white/60">—</span>
-          <Link href="/shop" className="flex items-center gap-1 hover:text-white/80 transition-opacity whitespace-nowrap border-b border-white pb-0.5 leading-none">
-            Shop Now <ArrowUpRight size={10} className="mb-0.5" />
-          </Link>
-        </div>
+      {/* TOP BAR */}
+      <div className="bg-[#0C123C] text-white text-[10px] font-bold text-center py-2 uppercase tracking-widest hidden sm:block">
+        Complimentary Shipping on Orders Above $200 — <Link href="/shop" className="underline">Shop Now</Link>
       </div>
 
-      {/* 2. MAIN NAVBAR */}
-      <nav className="border-b border-[#E5E0D8] py-4 md:py-6 relative z-50 bg-[#FDFBF7]">
-        <div className="max-w-[1500px] mx-auto px-4 md:px-12 flex justify-between items-center">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-20">
           
-          {/* MOBILE: Hamburger Menu */}
-          <button 
-            className="lg:hidden text-[#1A1A1A] p-1"
-            onClick={() => setIsMobileMenuOpen(true)}
-          >
-            <Menu size={24} strokeWidth={1.5} />
-          </button>
-
-          {/* Logo */}
-          <Link href="/" className="font-serif text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-[#1A1A1A] italic absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0 lg:text-left">
-            TYAARA TRENDS
-          </Link>
-
-          {/* DESKTOP: Centered Links */}
-          <div className="hidden lg:flex items-center gap-8 text-[13px] font-medium tracking-widest uppercase text-[#1A1A1A]">
-            <Link href="/" className="flex items-center gap-1 hover:text-[#8B7E58] transition-colors">
-              Home <ChevronDown size={12} />
-            </Link>
-            <Link href="/shop" className="flex items-center gap-1 hover:text-[#8B7E58] transition-colors">
-              Shop <ChevronDown size={12} />
-            </Link>
-            <Link href="/products" className="flex items-center gap-1 hover:text-[#8B7E58] transition-colors">
-              Products <ChevronDown size={12} />
-            </Link>
-            <Link href="/about" className="flex items-center gap-1 hover:text-[#8B7E58] transition-colors">
-              About <ChevronDown size={12} />
+          {/* LOGO */}
+          <div className="flex-shrink-0">
+            <Link href="/" className="font-serif text-2xl tracking-wide text-[#1A1A1A] font-bold">
+              TYAARA TRENDS
             </Link>
           </div>
 
-          {/* Right Icons */}
-          <div className="flex items-center gap-4 md:gap-6 text-[#1A1A1A]">
-            <Search size={20} className="hidden md:block cursor-pointer hover:text-[#8B7E58]" strokeWidth={1.5} />
-            <Link href="/account">
-               <User size={20} className="hidden md:block cursor-pointer hover:text-[#8B7E58]" strokeWidth={1.5} />
+          {/* DESKTOP MENU */}
+          <div className="hidden md:flex items-center space-x-8">
+            {["Home", "Shop", "Products", "About"].map((item) => (
+              <Link
+                key={item}
+                href={item === "Home" ? "/" : `/${item.toLowerCase()}`}
+                className="text-xs font-bold uppercase tracking-widest text-[#1A1A1A] hover:text-[#0C123C] transition-colors"
+              >
+                {item}
+              </Link>
+            ))}
+          </div>
+
+          {/* ICONS */}
+          <div className="flex items-center gap-6">
+            <button className="text-[#1A1A1A] hover:text-[#0C123C] transition-colors">
+              <Search size={20} strokeWidth={1.5} />
+            </button>
+
+            <Link href="/account" className="text-[#1A1A1A] hover:text-[#0C123C] transition-colors">
+              <User size={20} strokeWidth={1.5} />
             </Link>
-            
-            {/* DYNAMIC CART ICON */}
-            <Link href="/cart" className="relative cursor-pointer hover:text-[#8B7E58]">
-              <ShoppingBag size={20} strokeWidth={1.5} />
-              {totalItems > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-[#8B7E58] text-white text-[9px] w-4 h-4 flex items-center justify-center rounded-full animate-in zoom-in">
-                  {totalItems}
+
+            {/* WISHLIST ICON */}
+            <Link href="/wishlist" className="text-[#1A1A1A] hover:text-[#0C123C] transition-colors relative group">
+              <Heart size={20} strokeWidth={1.5} />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+                  {wishlistCount}
                 </span>
               )}
             </Link>
 
-          </div>
-        </div>
-      </nav>
+            {/* CART ICON (Live Count) */}
+            <Link href="/cart" className="text-[#1A1A1A] hover:text-[#0C123C] transition-colors relative">
+              <ShoppingBag size={20} strokeWidth={1.5} />
+              {/* 👇 Only show badge if count > 0 */}
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[#B87E58] text-white text-[9px] font-bold w-3.5 h-3.5 flex items-center justify-center rounded-full">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
 
-      {/* 3. MOBILE MENU OVERLAY */}
-      <div className={`fixed inset-0 z-[100] bg-black/50 transition-opacity duration-300 lg:hidden ${isMobileMenuOpen ? "opacity-100 visible" : "opacity-0 invisible"}`} onClick={() => setIsMobileMenuOpen(false)}></div>
-      
-      {/* 4. MOBILE MENU DRAWER */}
-      <div className={`fixed top-0 left-0 h-full w-[80%] max-w-[300px] bg-[#FDFBF7] z-[101] shadow-2xl transition-transform duration-300 transform lg:hidden ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="p-6 flex flex-col h-full">
-          <div className="flex justify-between items-center mb-8 border-b border-[#E5E0D8] pb-4">
-             <span className="font-serif text-2xl italic font-bold">TRAAYA</span>
-             <button onClick={() => setIsMobileMenuOpen(false)}>
-               <X size={24} strokeWidth={1.5} />
-             </button>
-          </div>
-          <div className="flex flex-col gap-6 text-[13px] font-bold tracking-widest uppercase text-[#1A1A1A]">
-            <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="border-b border-transparent hover:border-[#8B7E58] pb-1 w-fit">Home</Link>
-            <Link href="/shop" onClick={() => setIsMobileMenuOpen(false)} className="border-b border-transparent hover:border-[#8B7E58] pb-1 w-fit">Shop</Link>
-            <Link href="/products" onClick={() => setIsMobileMenuOpen(false)} className="border-b border-transparent hover:border-[#8B7E58] pb-1 w-fit">Products</Link>
-            <Link href="/about" onClick={() => setIsMobileMenuOpen(false)} className="border-b border-transparent hover:border-[#8B7E58] pb-1 w-fit">About</Link>
+            <button 
+              className="md:hidden text-[#1A1A1A]"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              {isOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
         </div>
       </div>
-    </header>
+
+      {/* MOBILE MENU */}
+      {isOpen && (
+        <div className="md:hidden bg-white border-t border-[#E5E5E5] px-4 py-6 space-y-4 animate-in slide-in-from-top-5">
+           {["Home", "Shop", "Products", "About", "Wishlist", "Account"].map((item) => (
+              <Link
+                key={item}
+                href={`/${item.toLowerCase()}`}
+                className="block text-sm font-bold uppercase tracking-widest text-[#1A1A1A]"
+                onClick={() => setIsOpen(false)}
+              >
+                {item}
+              </Link>
+            ))}
+        </div>
+      )}
+    </nav>
   );
 }

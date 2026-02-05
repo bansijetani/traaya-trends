@@ -58,5 +58,41 @@ export const userSchema = {
       type: 'number', // We will store this as a timestamp (Date.now())
       hidden: true,
     }),
+    defineField({
+      name: 'wishlist',
+      title: 'Wishlist',
+      type: 'array',
+      of: [
+        { 
+          type: 'reference', 
+          to: [{ type: 'product' }] 
+        }
+      ]
+    }),
+    defineField({
+      name: 'addresses',
+      title: 'Saved Addresses',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          name: 'address',
+          fields: [
+            { name: 'id', title: 'ID', type: 'string' }, // Unique ID for finding it later
+            { name: 'label', title: 'Label', type: 'string', initialValue: 'Home' }, // e.g. "Home", "Office"
+            { name: 'name', title: 'Contact Name', type: 'string' },
+            { name: 'email', title: 'Contact Email', type: 'string' },
+            { name: 'addressLine', title: 'Address', type: 'text' },
+            { name: 'city', title: 'City', type: 'string' },
+            { name: 'zipCode', title: 'Zip Code', type: 'string' },
+            { name: 'phone', title: 'Phone', type: 'string' },
+            { name: 'isDefault', title: 'Default Address', type: 'boolean', initialValue: false }
+          ],
+          preview: {
+            select: { title: 'label', subtitle: 'addressLine' }
+          }
+        }
+      ]
+    }),
   ],
 };

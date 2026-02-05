@@ -3,37 +3,44 @@ import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
 
 export async function middleware(req: NextRequest) {
-  // 👇 1. Use NextAuth's getToken to get the correct session
-  // This looks for "next-auth.session-token" automatically
+  // 1. Get the session token
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
   const isLoginPage = req.nextUrl.pathname.startsWith("/login");
   const isAdminPage = req.nextUrl.pathname.startsWith("/admin");
 
-  // 2. LOGIC: If user is already logged in, kick them OUT of the login page
-  // (So they go straight to dashboard)
+  // 2. LOGIC: Handle users visiting the Login page while already logged in
   if (isLoginPage && token) {
-    return NextResponse.redirect(new URL("/admin/dashboard", req.url));
+    // @ts-ignore
+    const role = token.role; 
+
+    // IF ADMIN: Send to Dashboard
+    if (role === "admin") {
+      return NextResponse.redirect(new URL("/admin/dashboard", req.url));
+    } 
+    
+    // IF CUSTOMER: Send to Home (or Account)
+    return NextResponse.redirect(new URL("/", req.url));
   }
 
   // 3. LOGIC: Protect Admin Routes
   if (isAdminPage) {
-    // If not logged in at all -> Login
+    // If not logged in -> Go to Login
     if (!token) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
 
-    // Optional: Check for 'admin' role if you set that up in [...nextauth]/route.ts
+    // If logged in but NOT admin -> Kick to Home
     // @ts-ignore
     if (token.role !== "admin") {
-      return NextResponse.redirect(new URL("/", req.url)); // Kick non-admins to home
+      return NextResponse.redirect(new URL("/", req.url));
     }
   }
 
   return NextResponse.next();
 }
 
-// 4. Specify routes to protect
+// 4. Matcher
 export const config = {
   matcher: ["/admin/:path*", "/login"],
 };

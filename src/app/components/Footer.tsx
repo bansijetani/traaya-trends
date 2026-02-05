@@ -35,7 +35,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="bg-[#4b3e35] text-white pt-24 pb-12 relative overflow-hidden">
+    <footer className="bg-[#020C1B] text-white pt-24 pb-12 relative overflow-hidden">
         {/* Watermark Background */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none overflow-hidden leading-none">
            <span className="text-[150px] md:text-[280px] font-serif text-white opacity-5 whitespace-nowrap block translate-y-[30%]">TRAAYA</span>

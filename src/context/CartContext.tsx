@@ -8,17 +8,24 @@ export type CartItem = {
   price: number;
   image: string;
   quantity: number;
-  slug: string;
+  slug?: string; // 👈 Made optional to prevent errors if not passed immediately
 };
 
 type CartContextType = {
+  // Your original properties
   items: CartItem[];
   addToCart: (item: CartItem) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
-  clearCart: () => void; // <--- NEW FUNCTION
+  clearCart: () => void;
   totalItems: number;
   cartTotal: number;
+
+  // 👇 ADDED ALIASES (To make the AddToCartButton work)
+  cart: CartItem[];
+  addItem: (item: CartItem) => void;
+  removeItem: (id: string) => void; // Alias for removeFromCart
+  cartCount: number; // Alias for totalItems
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -65,13 +72,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  // --- NEW: Function to clear everything ---
   const clearCart = () => {
     setItems([]);
   };
 
   return (
-    <CartContext.Provider value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, totalItems, cartTotal }}>
+    <CartContext.Provider 
+      value={{ 
+        items, 
+        addToCart, 
+        removeFromCart, 
+        updateQuantity, 
+        clearCart, 
+        totalItems, 
+        cartTotal,
+        
+        // 👇 Mapping aliases so 'addItem' works automatically
+        cart: items, 
+        addItem: addToCart, 
+        removeItem: removeFromCart,
+        cartCount: totalItems 
+      }}
+    >
       {children}
     </CartContext.Provider>
   );

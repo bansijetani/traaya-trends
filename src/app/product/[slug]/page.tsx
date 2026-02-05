@@ -13,6 +13,7 @@ import { useParams } from "next/navigation";
 import { client } from "@/sanity/lib/client";
 import { urlFor } from "@/sanity/lib/image";
 import { useCart } from "@/context/CartContext";
+import WishlistButton from "@/components/WishlistButton";
 
 // --- TYPES ---
 interface SanityProduct {
@@ -258,9 +259,9 @@ export default function ProductPage() {
                 >
                   {isOutOfStock ? "OUT OF STOCK" : `ADD TO BAG — $${(product.price * quantity).toFixed(2)}`}
                 </button>
-                <button className="w-14 border border-[#E5E5E5] flex items-center justify-center hover:border-[#1A1A1A] transition-colors bg-white group cursor-pointer">
-                    <Heart size={20} className="text-[#555] group-hover:text-black"/>
-                </button>
+                <div className="w-14 h-14 border border-gray-300 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors">
+                  <WishlistButton productId={product._id} />
+                </div>
               </div>
 
               {!isOutOfStock && (
