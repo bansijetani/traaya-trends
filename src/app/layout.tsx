@@ -3,6 +3,7 @@ import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import ThemeProvider from "@/components/ThemeProvider";
+import { CartProvider } from "@/context/CartContext";
 import { Toaster } from "react-hot-toast";
 
 // 👇 Import Sanity Client to fetch colors
@@ -50,10 +51,10 @@ export default async function RootLayout({
       >
         <Providers>
           <ThemeProvider>
-            
+            <CartProvider>
               {children}
               <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
-
+            </CartProvider>
           </ThemeProvider>
         </Providers>
       </body>
