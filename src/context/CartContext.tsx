@@ -2,37 +2,32 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-export type CartItem = {
+// ✅ 1. Define the Shape of a Cart Item
+export interface CartItem {
   id: string;
+  _id?: string; // Optional backup ID
   name: string;
-  price: number;
+  price: number; // Must be a number!
   image: string;
+  slug: string;
   quantity: number;
-  slug?: string; // 👈 Made optional to prevent errors if not passed immediately
-};
+}
 
-type CartContextType = {
-  // Your original properties
+interface CartContextType {
   items: CartItem[];
-  addToCart: (item: CartItem) => void;
+  addToCart: (product: any) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
-  clearCart: () => void;
-  totalItems: number;
-  cartTotal: number;
-
-  // 👇 ADDED ALIASES (To make the AddToCartButton work)
-  cart: CartItem[];
-  addItem: (item: CartItem) => void;
-  removeItem: (id: string) => void; // Alias for removeFromCart
-  cartCount: number; // Alias for totalItems
-};
+  getCartTotal: () => number;
+  getCartCount: () => number;
+}
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
 
+  // Load from LocalStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem("cart");
     if (savedCart) {
@@ -40,24 +35,46 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Save to LocalStorage whenever items change
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(items));
   }, [items]);
 
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const cartTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-  const addToCart = (product: CartItem) => {
+  // ✅ 2. Add to Cart with Price Cleaning
+  const addToCart = (product: any) => {
     setItems((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
-      if (existing) {
+      // Handle ID: Prefer 'id', fallback to '_id'
+      const productId = product.id || product._id;
+      
+      // Handle Price: Ensure it's a number
+      let safePrice = product.price;
+      if (typeof safePrice === 'string') {
+        // Remove "$" and "," and convert to float
+        safePrice = parseFloat(safePrice.replace(/[^0-9.]/g, ''));
+      }
+
+      const existingItem = prev.find((item) => item.id === productId);
+
+      if (existingItem) {
         return prev.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + product.quantity }
+          item.id === productId
+            ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
-      return [...prev, product];
+
+      return [
+        ...prev,
+        {
+          id: productId,
+          _id: product._id, // Save this just in case
+          name: product.name,
+          price: safePrice, // Save the cleaned number
+          image: product.image,
+          slug: product.slug?.current || product.slug,
+          quantity: 1,
+        },
+      ];
     });
   };
 
@@ -66,32 +83,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const updateQuantity = (id: string, quantity: number) => {
-    if (quantity < 1) return removeFromCart(id);
+    if (quantity < 1) return;
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, quantity } : item))
     );
   };
 
-  const clearCart = () => {
-    setItems([]);
+  // ✅ 3. Calculate Total Safely
+  const getCartTotal = () => {
+    return items.reduce((total, item) => {
+        const itemPrice = typeof item.price === 'number' ? item.price : 0;
+        return total + itemPrice * item.quantity;
+    }, 0);
+  };
+
+  const getCartCount = () => {
+    return items.reduce((total, item) => total + item.quantity, 0);
   };
 
   return (
-    <CartContext.Provider 
-      value={{ 
-        items, 
-        addToCart, 
-        removeFromCart, 
-        updateQuantity, 
-        clearCart, 
-        totalItems, 
-        cartTotal,
-        
-        // 👇 Mapping aliases so 'addItem' works automatically
-        cart: items, 
-        addItem: addToCart, 
-        removeItem: removeFromCart,
-        cartCount: totalItems 
+    <CartContext.Provider
+      value={{
+        items,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        getCartTotal,
+        getCartCount,
       }}
     >
       {children}

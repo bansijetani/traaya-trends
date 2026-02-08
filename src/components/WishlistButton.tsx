@@ -1,90 +1,111 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Heart } from "lucide-react";
-import toast from "react-hot-toast";
+import { useState, useEffect } from "react";
 import { client } from "@/sanity/lib/client";
+import { toggleWishlistAction } from "@/app/actions/wishlistAction"; 
+import toast from "react-hot-toast";
 
 interface WishlistButtonProps {
   productId: string;
+  productName?: string;
 }
 
-export default function WishlistButton({ productId }: WishlistButtonProps) {
-  const [isActive, setIsActive] = useState(false);
-  const [loading, setLoading] = useState(false);
+export default function WishlistButton({ productId, productName }: WishlistButtonProps) {
+  const [isInWishlist, setIsInWishlist] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
+  // 1. Check Wishlist Status (On Load)
   useEffect(() => {
-    const localUserId = localStorage.getItem("user_id") || localStorage.getItem("userId");
-    console.log("👤 Wishlist User ID:", localUserId); // 👈 DEBUG LOG
-    setUserId(localUserId);
+    const storedUserId = localStorage.getItem("user_id") || localStorage.getItem("userId");
+    setUserId(storedUserId);
 
-    if (localUserId && productId) {
-      const checkStatus = async () => {
+    if (storedUserId) {
+      const checkWishlist = async () => {
         try {
-          // Check if this product ID exists in the user's wishlist array
-          const query = `count(*[_type == "user" && _id == $id && defined(wishlist) && $prodId in wishlist[]._ref]) > 0`;
-          const isInWishlist = await client.fetch(query, { id: localUserId, prodId: productId });
-          setIsActive(isInWishlist);
-        } catch (err) {
-          console.error("Check status failed:", err);
+          const query = `*[_type == "user" && _id == $userId][0].wishlist[]._ref`;
+          const wishlistItems: string[] = await client.fetch(query, { userId: storedUserId });
+          
+          if (wishlistItems && wishlistItems.includes(productId)) {
+            setIsInWishlist(true);
+          }
+        } catch (error) {
+          console.error("Failed to check wishlist", error);
         }
       };
-      checkStatus();
+      checkWishlist();
     }
   }, [productId]);
 
+  // 2. Handle Click (Optimistic Update)
   const toggleWishlist = async (e: React.MouseEvent) => {
-    e.preventDefault();
+    e.preventDefault(); 
     e.stopPropagation();
 
-    console.log("❤️ Clicked Wishlist. User:", userId, "Product:", productId); // 👈 DEBUG LOG
-
     if (!userId) {
-      toast.error("Please log in to your account first!");
+      toast.error("Please sign in to save items");
       return;
     }
 
-    setLoading(true);
-    
-    try {
-      const res = await fetch("/api/wishlist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, productId }),
-      });
+    // A. CAPTURE CURRENT STATE
+    const previousState = isInWishlist;
+    const newState = !isInWishlist;
 
-      const data = await res.json();
-      console.log("📡 API Response:", data); // 👈 DEBUG LOG
-      
-      if (res.ok) {
-        setIsActive(data.active);
-        toast.success(data.message);
-      } else {
-        toast.error("Failed to update wishlist");
-      }
+    // B. INSTANTLY UPDATE BUTTON UI
+    setIsInWishlist(newState);
+    
+    // C. INSTANTLY UPDATE HEADER COUNTER (The Magic Part ✨)
+    // We send a custom signal: +1 if adding, -1 if removing
+    const event = new CustomEvent("wishlist-change", { 
+        detail: { change: newState ? 1 : -1 } 
+    });
+    window.dispatchEvent(event);
+
+    // D. SHOW TOAST
+    if (newState) {
+        toast.success(productName ? `${productName} saved to wishlist` : "Saved to wishlist", {
+            style: { background: '#083200', color: '#FFFFFF', border: '1px solid #8BAE62', padding: '16px' },
+            iconTheme: { primary: '#8BAE62', secondary: '#083200' },
+        });
+    } else {
+        toast.success("Removed from wishlist", {
+            style: { background: '#083200', color: '#FFFFFF', border: '1px solid #8BAE62' },
+            iconTheme: { primary: '#8BAE62', secondary: '#083200' },
+        });
+    }
+
+    // E. PERFORM SERVER UPDATE IN BACKGROUND
+    try {
+      const result = await toggleWishlistAction(userId, productId, previousState);
+      if (!result.success) throw new Error(result.error);
     } catch (error) {
-      console.error(error);
-      toast.error("Something went wrong");
-    } finally {
-      setLoading(false);
+      // F. REVERT UI IF SERVER FAILS
+      console.error("Wishlist update failed", error);
+      setIsInWishlist(previousState);
+      
+      // Revert the counter too
+      window.dispatchEvent(new CustomEvent("wishlist-change", { 
+        detail: { change: newState ? -1 : 1 } 
+      }));
+      
+      toast.error("Could not save to wishlist");
     }
   };
 
   return (
     <button
       onClick={toggleWishlist}
-      disabled={loading}
-      className={`w-full h-full flex items-center justify-center rounded-full transition-all ${
-        isActive 
-          ? "bg-red-50 text-red-500" 
-          : "text-gray-400 hover:text-red-500"
-      }`}
+      className={`p-2 rounded-full transition-all duration-300 ${
+        isInWishlist 
+          ? "bg-red-50 text-red-500 hover:bg-red-100" 
+          : "bg-white/80 text-gray-600 hover:bg-white hover:text-primary hover:scale-110"
+      } shadow-sm backdrop-blur-sm`}
+      aria-label="Toggle Wishlist"
     >
       <Heart 
-        size={24} 
-        fill={isActive ? "currentColor" : "none"} 
-        className={loading ? "animate-pulse" : ""}
+        size={20} 
+        className="transition-transform duration-300 active:scale-75" 
+        fill={isInWishlist ? "currentColor" : "none"} 
       />
     </button>
   );
