@@ -1,255 +1,268 @@
 "use client";
 
-import { CheckCircle, ArrowRight, Printer, MapPin, Calendar, TicketPercent, Loader2, Lock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useEffect, useState, Suspense } from "react"; // 👈 Added Suspense
-import { useSearchParams, useRouter } from "next/navigation";
-import { client } from "@/sanity/lib/client";
+import Image from "next/image";
+import { createClient } from "next-sanity";
+import { Check, Printer, ArrowRight, Loader2, ShoppingBag, MapPin, Calendar, Mail } from "lucide-react";
+import Price from "@/components/Price";
 
-// 👇 1. Move all your logic into this Sub-Component
-function OrderSuccessContent() {
-  const router = useRouter();
+const client = createClient({
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
+  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
+  apiVersion: "2023-01-01",
+  useCdn: true,
+});
+
+export default function OrderSuccessPage() {
   const searchParams = useSearchParams();
   const orderNumber = searchParams.get("orderNumber");
 
   const [order, setOrder] = useState<any>(null);
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isVerified, setIsVerified] = useState(false);
 
   useEffect(() => {
-    if (!orderNumber) {
-        // If no order number, wait a tick then redirect (avoids hydration mismatch)
-        const timeout = setTimeout(() => router.push("/"), 100);
-        return () => clearTimeout(timeout);
-    }
+    if (!orderNumber) return;
 
-    // Security Check: Did this browser place the order?
-    const storedOrder = typeof window !== 'undefined' ? localStorage.getItem("latest_order_id") : null;
-    if (storedOrder === orderNumber) {
-        setIsVerified(true);
-    }
-
-    const fetchData = async () => {
+    const fetchOrder = async () => {
       try {
-        const query = `{
-            "order": *[_type == "order" && orderNumber == $orderNumber][0]{
-                orderNumber,
-                orderDate,
-                customerName,
-                email,
-                shippingAddress,
-                totalPrice,
-                discount,
-                couponCode,
-                items[]{
-                    quantity,
-                    product->{
-                        name,
-                        price,
-                        "image": images[0].asset->url,
-                        _id
-                    }
-                }
-            },
-            "settings": *[_type in ["settings", "themeSettings", "siteSettings"]][0]{ 
-                "logo": logo.asset->url 
-            }
+        const query = `*[_type == "order" && orderNumber == $orderNumber][0]{
+          _id,
+          orderNumber,
+          customerName,
+          email,
+          orderDate,
+          shippingAddress,
+          totalPrice,
+          discount,
+          items[]{
+            productName,
+            quantity,
+            price,
+            "image": product->images[0].asset->url 
+          }
         }`;
-        
+
         const data = await client.fetch(query, { orderNumber });
-        
-        if (data.order) {
-            setOrder(data.order);
-        }
-        if (data.settings?.logo) {
-            setLogoUrl(data.settings.logo);
-        }
-        
+        setOrder(data);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Failed to fetch order", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [orderNumber, router]);
+    fetchOrder();
+  }, [orderNumber]);
 
-  if (loading) return (
-    <div className="flex-1 flex items-center justify-center min-h-[50vh]">
-        <div className="flex items-center gap-3 text-[#1A1A1A]">
-            <Loader2 className="animate-spin" /> Loading Receipt...
+  if (loading) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-white">
+        <Loader2 className="animate-spin text-primary mb-4" size={40} />
+        <p className="font-serif text-lg text-primary animate-pulse">Retrieving your order...</p>
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-white px-6 text-center">
+        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-6">
+            <span className="text-red-500 text-3xl font-serif">!</span>
         </div>
-    </div>
-  );
-
-  if (!order) return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-4 min-h-[50vh]">
-        <h1 className="text-2xl font-serif text-red-500">Order Not Found</h1>
-        <Link href="/" className="underline text-sm hover:text-[#B87E58]">Return Home</Link>
-    </div>
-  );
+        <h1 className="font-serif text-3xl text-primary mb-4">Order Not Found</h1>
+        <p className="text-gray-500 mb-8">We couldn't locate the order details. Please check your email for confirmation.</p>
+        <Link href="/" className="bg-primary text-white px-8 py-3 uppercase tracking-widest text-xs font-bold hover:bg-secondary transition-all">
+            Return Home
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center pt-[160px] pb-24 px-4 sm:px-6 max-w-4xl mx-auto w-full text-center print:pt-4 print:pb-4 print:px-0 print:max-w-full">
+    <>
+      <style jsx global>{`
+        @media print {
+          body * { visibility: hidden; }
+          #print-area, #print-area * { visibility: visible; }
+          #print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; background: white; color: black; }
+          .no-print { display: none !important; }
+          .print-grid { display: block !important; }
+          .print-col { width: 100% !important; margin-bottom: 20px; }
+          .print-clean { background: none !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+          p, h1, h2, h3, h4, span { color: black !important; }
+        }
+      `}</style>
+
+      {/* 👇 RESPONSIVE PADDING FIXED:
+          Mobile: pt-28 pb-10 (Tighter)
+          Desktop: pt-48 pb-20 (Spacious)
+      */}
+      <div className="min-h-screen bg-white pt-28 pb-10 md:pt-48 md:pb-20 px-4 md:px-6 font-sans text-[#1A1A1A]">
         
-        {/* LOGO: Print Only */}
-        {logoUrl && (
-            <div className="hidden print:block mb-6 w-full text-center">
-                <img src={logoUrl} alt="Brand Logo" className="mx-auto w-32 object-contain" />
-            </div>
-        )}
-
-        {/* SUCCESS ICON */}
-        <div className="mb-8 animate-in zoom-in duration-700 print:hidden">
-          <div className="w-24 h-24 bg-[#E9EFE3] rounded-full flex items-center justify-center mx-auto mb-6 text-[#4CAF50]">
-            <CheckCircle size={48} strokeWidth={1.5} />
-          </div>
-        </div>
-
-        {/* Headlines */}
-        <h1 className="font-serif text-4xl md:text-5xl text-[#1A1A1A] mb-4 print:text-2xl">
-          Thank you for your purchase!
-        </h1>
-        <p className="text-[#555] max-w-lg mx-auto mb-10 leading-relaxed print:text-sm print:mb-6">
-          Your order has been confirmed. We have sent a confirmation email to 
-          <span className="font-bold text-[#1A1A1A] mx-1">
-             {isVerified ? order.email : "********@****.com"}
-          </span> 
-          with your order details.
-        </p>
-
-        {/* ORDER META DATA */}
-        <div className="bg-[#F9F9F9] border border-[#E5E5E5] w-full p-8 rounded-sm mb-12 flex flex-col md:flex-row justify-between gap-8 text-left print:bg-white print:border-none print:p-0 print:mb-6 print:grid print:grid-cols-2 print:gap-4">
+        <div id="print-area" className="max-w-[1000px] mx-auto">
           
-          {/* Order Number */}
-          <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-[#888] block mb-2">Order Number</span>
-            <span className="text-xl font-serif text-[#1A1A1A] print:text-base">{order.orderNumber}</span>
+          {/* Header Section: Reduced bottom margin on mobile */}
+          <div className="text-center mb-10 md:mb-16 animate-in fade-in zoom-in duration-700">
+              <div className="no-print inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-green-50 rounded-full mb-4 md:mb-6 border border-green-100 shadow-sm">
+                  <Check size={32} className="text-green-700 md:w-10 md:h-10" strokeWidth={1.5} />
+              </div>
+              
+              <div className="hidden print:block text-center mb-8">
+                  <h1 className="font-serif text-3xl uppercase tracking-widest font-bold">TRAAYA TRENDS</h1>
+                  <p className="text-xs uppercase tracking-wide">Official Order Receipt</p>
+              </div>
+
+              <h1 className="font-serif text-3xl md:text-5xl text-primary mb-3 md:mb-4 no-print">Thank you, {order.customerName.split(' ')[0]}!</h1>
+              <p className="text-gray-500 max-w-lg mx-auto text-xs md:text-base leading-relaxed no-print px-4">
+                  Your order <span className="font-bold text-primary">#{order.orderNumber}</span> has been confirmed. 
+                  We have sent a confirmation email to <span className="text-primary underline">{order.email}</span>.
+              </p>
           </div>
 
-          {/* Date */}
-          <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-[#888] block mb-2 flex items-center gap-2">
-              <Calendar size={12} className="print:hidden"/> Date
-            </span>
-            <span className="text-sm font-medium text-[#1A1A1A]">
-                {new Date(order.orderDate).toLocaleDateString()}
-            </span>
-          </div>
-
-          {/* Shipping */}
-          <div>
-             <span className="text-xs font-bold uppercase tracking-widest text-[#888] block mb-2 flex items-center gap-2">
-              <MapPin size={12} className="print:hidden"/> Shipping To
-            </span>
-            {isVerified ? (
-                <span className="text-sm font-medium text-[#1A1A1A] max-w-[200px] block print:max-w-full">
-                  {order.shippingAddress}
-                </span>
-            ) : (
-                <span className="text-sm font-medium text-gray-400 italic flex items-center gap-1">
-                    <Lock size={12} /> Hidden for privacy
-                </span>
-            )}
-          </div>
-
-          {/* Total */}
-          <div className="space-y-1">
-             <span className="text-xs font-bold uppercase tracking-widest text-[#888] block mb-2">Total Amount</span>
-             
-             {order.discount > 0 && (
-                 <div className="text-xs text-gray-400 line-through">
-                     ${(order.totalPrice + order.discount).toLocaleString()}
-                 </div>
-             )}
-             
-             <span className="text-xl font-bold text-[#B87E58] block print:text-[#1A1A1A] print:text-lg">
-                ${order.totalPrice.toLocaleString()}
-             </span>
-
-             {order.discount > 0 && (
-                 <span className="inline-flex items-center gap-1 text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full uppercase font-bold tracking-wide mt-1 print:bg-transparent print:text-green-700 print:p-0">
-                     <TicketPercent size={10} className="print:hidden" /> Saved ${order.discount}
-                 </span>
-             )}
-          </div>
-        </div>
-
-        {/* Items */}
-        <div className="w-full text-left mb-12 print:mb-0">
-            <h3 className="font-serif text-xl mb-6 pb-2 border-b border-[#E5E5E5] print:text-lg print:mb-4">What you ordered</h3>
-            
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide print:flex-col print:gap-0 print:overflow-visible">
-                {order.items?.map((item: any, index: number) => (
-                  <div key={index} className="min-w-[280px] flex gap-4 p-4 border border-[#E5E5E5] bg-white print:border-0 print:border-b print:px-0 print:py-2 print:w-full">
+          <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start print-grid">
+              
+              {/* ================= LEFT: ORDER DETAILS ================= */}
+              <div className="lg:col-span-7 space-y-6 md:space-y-8 print-col">
+                  
+                  {/* Information Card */}
+                  <div className="bg-white border border-gray-100 p-6 md:p-8 rounded-sm shadow-sm relative overflow-hidden print-clean">
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary no-print"></div>
                       
-                      {/* Image */}
-                      <div className="w-20 h-20 bg-[#F9F9F9] shrink-0 p-1 relative print:hidden">
-                          {item.product?.image ? (
-                            <img src={item.product.image} alt={item.product.name} className="w-full h-full object-contain mix-blend-multiply"/>
-                          ) : (
-                            <div className="w-full h-full bg-gray-200" />
-                          )}
-                          <span className="absolute -top-2 -right-2 bg-[#1A1A1A] text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full">
-                            {item.quantity}
-                          </span>
+                      <div className="flex justify-between items-baseline mb-6 border-b border-gray-100 pb-4">
+                        <h3 className="font-serif text-lg md:text-xl text-primary">Order Details</h3>
+                        <span className="text-[10px] md:text-xs font-bold text-gray-400">#{order.orderNumber}</span>
                       </div>
                       
-                      {/* Item Details */}
-                      <div className="flex-1 flex justify-between items-center print:flex-row">
-                        <div className="overflow-hidden">
-                            <h4 className="text-sm font-bold text-[#1A1A1A] line-clamp-1 mb-1 print:text-sm">{item.product?.name}</h4>
-                            <p className="hidden print:block text-xs text-gray-600">Qty: {item.quantity}</p>
-                        </div>
-                        <p className="text-sm font-medium print:text-sm print:font-bold">${(item.product?.price * item.quantity).toLocaleString()}</p>
+                      <div className="grid sm:grid-cols-2 gap-6 md:gap-8">
+                          <div className="space-y-4">
+                              <div className="flex items-start gap-3">
+                                  <MapPin size={16} className="text-secondary mt-1 shrink-0 no-print" />
+                                  <div>
+                                      <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Shipping To</p>
+                                      <p className="text-xs md:text-sm text-primary font-medium leading-relaxed">
+                                          {order.customerName}<br/>
+                                          {order.shippingAddress}
+                                      </p>
+                                  </div>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                  <Mail size={16} className="text-secondary mt-1 shrink-0 no-print" />
+                                  <div>
+                                      <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Email</p>
+                                      <p className="text-xs md:text-sm text-primary font-medium break-all">{order.email}</p>
+                                  </div>
+                              </div>
+                          </div>
+
+                          <div className="space-y-4">
+                              <div className="flex items-start gap-3">
+                                  <Calendar size={16} className="text-secondary mt-1 shrink-0 no-print" />
+                                  <div>
+                                      <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Date</p>
+                                      <p className="text-xs md:text-sm text-primary font-medium">
+                                          {new Date(order.orderDate).toLocaleDateString("en-US", { 
+                                              year: 'numeric', month: 'long', day: 'numeric' 
+                                          })}
+                                      </p>
+                                  </div>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                  <ShoppingBag size={16} className="text-secondary mt-1 shrink-0 no-print" />
+                                  <div>
+                                      <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Order Status</p>
+                                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] md:text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-100 print-clean">
+                                          Processing
+                                      </span>
+                                  </div>
+                              </div>
+                          </div>
                       </div>
                   </div>
-                ))}
-            </div>
-        </div>
 
-        {/* Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center w-full print:hidden">
-          <Link href="/products" className="w-full sm:w-auto">
-            <button className="w-full sm:w-auto h-14 px-10 bg-[#1A1A1A] text-white text-xs font-bold uppercase tracking-[0.2em] hover:bg-[#B87E58] transition-colors flex items-center justify-center gap-2">
-               Continue Shopping <ArrowRight size={16} />
-            </button>
-          </Link>
+                  {/* Actions (Hidden in Print) */}
+                  <div className="flex flex-col sm:flex-row gap-3 md:gap-4 no-print">
+                      <Link href="/shop" className="flex-1 order-2 sm:order-1">
+                          <button className="w-full py-3 md:py-4 bg-primary text-white text-[10px] md:text-xs font-bold uppercase tracking-widest hover:bg-secondary transition-colors shadow-md flex items-center justify-center gap-2 group">
+                              <ArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" size={14} />
+                              Continue Shopping
+                          </button>
+                      </Link>
+                      <button 
+                          onClick={() => window.print()} 
+                          className="flex-1 order-1 sm:order-2 py-3 md:py-4 bg-white border border-gray-200 text-primary text-[10px] md:text-xs font-bold uppercase tracking-widest hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                      >
+                          <Printer size={14} /> Print Receipt
+                      </button>
+                  </div>
+              </div>
+
+              {/* ================= RIGHT: ORDER SUMMARY ================= */}
+              <div className="lg:col-span-5 print-col">
+                  <div className="bg-[#F9F9F9] p-6 md:p-8 rounded-sm sticky top-32 print-clean">
+                      <h3 className="font-serif text-lg md:text-xl text-primary mb-6 pb-4 border-b border-gray-200">Order Summary</h3>
+                      
+                      <div className="space-y-4 md:space-y-5 max-h-[300px] md:max-h-[400px] overflow-y-auto pr-2 mb-6 md:mb-8 scrollbar-thin scrollbar-thumb-gray-200 print-clean print:max-h-none print:overflow-visible">
+                          {order.items?.map((item: any, idx: number) => (
+                              <div key={idx} className="flex gap-3 md:gap-4 items-center">
+                                  <div className="relative w-14 h-16 md:w-16 md:h-20 bg-white rounded-sm overflow-hidden flex-shrink-0 border border-gray-100 print-clean">
+                                      {item.image ? (
+                                          <Image src={item.image} alt={item.productName} fill className="object-cover" />
+                                      ) : (
+                                          <div className="w-full h-full flex items-center justify-center bg-gray-50 text-[10px] text-gray-300">Img</div>
+                                      )}
+                                      <span className="absolute -top-1.5 -right-1.5 w-4 h-4 md:w-5 md:h-5 bg-gray-600 text-white text-[9px] md:text-[10px] font-bold flex items-center justify-center rounded-full z-10 border border-white no-print">
+                                          {item.quantity}
+                                      </span>
+                                  </div>
+                                  <div className="flex-1">
+                                      <h4 className="font-serif text-sm text-primary line-clamp-2 leading-tight">{item.productName}</h4>
+                                      <p className="text-[10px] text-gray-400 mt-1 uppercase">Qty: {item.quantity}</p>
+                                  </div>
+                                  <div className="font-medium text-xs md:text-sm text-primary">
+                                      <Price amount={item.price * item.quantity} />
+                                  </div>
+                              </div>
+                          ))}
+                      </div>
+
+                      <div className="space-y-2 md:space-y-3 pt-4 md:pt-6 border-t border-gray-200 text-xs md:text-sm text-gray-600">
+                          <div className="flex justify-between">
+                              <span>Subtotal</span>
+                              <span className="font-medium text-primary"><Price amount={order.totalPrice + (order.discount || 0)} /></span>
+                          </div>
+                          {order.discount > 0 && (
+                              <div className="flex justify-between text-green-700">
+                                  <span>Discount</span>
+                                  <span className="font-medium">-<Price amount={order.discount} /></span>
+                              </div>
+                          )}
+                           <div className="flex justify-between">
+                              <span>Shipping</span>
+                              <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-green-600">Free</span>
+                          </div>
+                      </div>
+
+                      <div className="flex justify-between items-baseline pt-4 mt-4 border-t border-gray-200">
+                          <span className="font-serif text-base md:text-lg text-primary">Total Paid</span>
+                          <span className="font-serif text-xl md:text-2xl text-primary font-bold">
+                              <Price amount={order.totalPrice} />
+                          </span>
+                      </div>
+
+                  </div>
+              </div>
+
+          </div>
           
-          {isVerified && (
-            <button 
-                onClick={() => window.print()}
-                className="w-full sm:w-auto h-14 px-10 border border-[#E5E5E5] text-[#1A1A1A] text-xs font-bold uppercase tracking-[0.2em] hover:border-[#1A1A1A] transition-colors flex items-center justify-center gap-2"
-            >
-                <Printer size={16} /> Print Receipt
-            </button>
-          )}
+          <div className="hidden print:block mt-12 text-center text-xs text-gray-500 pt-8 border-t border-gray-100">
+              <p>Thank you for choosing Traaya Trends.</p>
+              <p>For support, contact us at support@traayatrends.com</p>
+          </div>
+
         </div>
-    </div>
-  );
-}
-
-// 👇 2. Main Page Component (Wraps content in Suspense)
-export default function OrderSuccessPage() {
-  return (
-    <main className="bg-white text-[#1A1A1A] min-h-screen flex flex-col font-sans print:bg-white">
-      <div className="print:hidden">
       </div>
-
-      <Suspense fallback={
-        <div className="flex-1 flex items-center justify-center min-h-[50vh]">
-             <div className="flex items-center gap-3 text-[#1A1A1A]">
-                <Loader2 className="animate-spin" /> Loading Order...
-            </div>
-        </div>
-      }>
-        <OrderSuccessContent />
-      </Suspense>
-
-      <div className="print:hidden">
-      </div>
-    </main>
+    </>
   );
 }

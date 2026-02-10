@@ -1,98 +1,97 @@
 "use client";
 
 import { useCart } from "@/context/CartContext";
-import { ShoppingBag, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { ShoppingBag, Ban } from "lucide-react"; 
 import toast from "react-hot-toast";
 
-interface AddToCartProps {
+interface AddToCartButtonProps {
   product: any;
-  styleType?: "icon" | "full" | "minimal";
+  styleType?: "full" | "icon" | "minimal";
+  stock?: number;
 }
 
-export default function AddToCartButton({ product, styleType = "full" }: AddToCartProps) {
+export default function AddToCartButton({ product, styleType = "full", stock = 10 }: AddToCartButtonProps) {
   const { addToCart } = useCart();
-  const [loading, setLoading] = useState(false);
+
+  // Check for Out of Stock
+  const isOutOfStock = stock === 0;
 
   const handleAddToCart = (e: React.MouseEvent) => {
+    // Stop click from bubbling up to parent Link (if inside a product card)
     e.preventDefault(); 
-    e.stopPropagation(); 
+    e.stopPropagation();
 
-    setLoading(true);
+    if (isOutOfStock) return;
 
-    // Normalization: Create a clean object for the cart
-    const cartItem = {
-        id: product.id || product._id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        slug: product.slug?.current || product.slug,
-        quantity: 1
-    };
-
-    // Simulate network delay for UX
-    setTimeout(() => {
-      addToCart(cartItem);
-      
-      // 👇 UPDATE: Toast now uses your Brand Colors
-      toast.success(`${product.name} added to bag`, {
-        style: {
-          background: '#083200', // Primary (Deep Green)
-          color: '#FFFFFF',      // White Text
-          border: '1px solid #8BAE62', // Secondary (Soft Green/Gold)
-          padding: '16px',
-        },
-        iconTheme: {
-          primary: '#8BAE62',   // Secondary (Icon Color)
-          secondary: '#083200', // Primary (Checkmark Color)
-        },
-      });
-      
-      setLoading(false);
-    }, 500);
+    addToCart({
+      // 👇 FIXED: Changed 'id' to '_id' to match CartContext
+      _id: product._id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      quantity: 1,
+      slug: product.slug,
+    });
+    
+    toast.success("Added to Bag");
   };
 
-  // --- STYLE VARIANTS ---
-
-  if (styleType === "icon") {
+  // 1. OUT OF STOCK - FULL BUTTON
+  if (isOutOfStock && styleType === "full") {
     return (
-      <button
-        onClick={handleAddToCart}
-        disabled={loading}
-        className="relative z-50 w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-secondary transition-colors duration-300 shadow-md cursor-pointer"
-        aria-label="Add to cart"
+      <button 
+        disabled
+        className="w-full bg-gray-100 text-gray-400 py-4 text-xs font-bold uppercase tracking-widest cursor-not-allowed border border-gray-100 flex items-center justify-center gap-2"
       >
-        {loading ? <Loader2 size={18} className="animate-spin" /> : <ShoppingBag size={18} />}
+        <Ban size={16} /> Out of Stock
       </button>
     );
   }
 
+  // 2. OUT OF STOCK - ICON BUTTON / MINIMAL
+  if (isOutOfStock && (styleType === "icon" || styleType === "minimal")) {
+     return (
+        <button 
+          disabled
+          className="w-10 h-10 bg-gray-100 text-gray-300 rounded-full flex items-center justify-center cursor-not-allowed shadow-none"
+          title="Out of Stock"
+        >
+          <Ban size={18} />
+        </button>
+     );
+  }
+
+  // 3. IN STOCK - FULL BUTTON
+  if (styleType === "full") {
+    return (
+      <button 
+        onClick={handleAddToCart}
+        className="w-full border bg-primary text-white py-4 text-xs font-bold uppercase tracking-widest hover:bg-secondary transition-all duration-300"
+      >
+        Add to Bag
+      </button>
+    );
+  }
+
+  // 4. IN STOCK - MINIMAL (Under Text)
   if (styleType === "minimal") {
-    return (
-      <button
-        onClick={handleAddToCart}
-        disabled={loading}
-        className="relative z-50 group flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary border-b border-primary pb-1 hover:text-secondary hover:border-secondary transition-all duration-300 cursor-pointer"
-      >
-        {loading ? <Loader2 size={14} className="animate-spin" /> : "Add to Bag"}
-      </button>
-    );
+      return (
+        <button 
+            onClick={handleAddToCart}
+            className="text-[10px] font-bold uppercase tracking-widest border-b border-black pb-0.5 hover:text-secondary hover:border-secondary transition-colors flex items-center gap-1"
+        >
+            <ShoppingBag size={12} /> Add to Bag
+        </button>
+      );
   }
 
+  // 5. IN STOCK - ICON (Circle)
   return (
-    <button
+    <button 
       onClick={handleAddToCart}
-      disabled={loading}
-      className="relative z-50 w-full bg-primary text-white py-3 px-6 text-sm font-bold uppercase tracking-wider hover:bg-secondary transition-colors duration-300 flex items-center justify-center gap-2 cursor-pointer"
+      className="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center hover:bg-secondary transition-all shadow-md"
     >
-      {loading ? (
-        <Loader2 size={18} className="animate-spin" />
-      ) : (
-        <>
-          <ShoppingBag size={18} />
-          Add to Cart
-        </>
-      )}
+      <ShoppingBag size={18} strokeWidth={1.5} />
     </button>
   );
 }

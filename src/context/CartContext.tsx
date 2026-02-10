@@ -2,112 +2,97 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-// ✅ 1. Define the Shape of a Cart Item
 export interface CartItem {
-  id: string;
-  _id?: string; // Optional backup ID
+  _id: string;
   name: string;
-  price: number; // Must be a number!
+  price: number;
   image: string;
-  slug: string;
   quantity: number;
+  slug: string;
+  size?: string;
 }
 
 interface CartContextType {
   items: CartItem[];
-  addToCart: (product: any) => void;
+  addToCart: (item: CartItem) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
-  getCartTotal: () => number;
-  getCartCount: () => number;
   clearCart: () => void;
+  
+  // 👇 Changed these to Numbers (not functions)
+  cartCount: number;
   cartTotal: number;
+  
+  isCartOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false); // 👈 Prevents overwriting data
 
-  // Load from LocalStorage on mount
+  // 1. LOAD DATA (Runs once)
   useEffect(() => {
-    const savedCart = localStorage.getItem("cart");
-    if (savedCart) {
-      setItems(JSON.parse(savedCart));
+    if (typeof window !== "undefined") {
+      const storedCart = localStorage.getItem("cart");
+      if (storedCart) {
+        try {
+          setItems(JSON.parse(storedCart));
+        } catch (error) {
+          console.error("Failed to parse cart", error);
+        }
+      }
+      setIsLoaded(true); // ✅ Data is loaded, safe to save now
     }
   }, []);
 
-  // Save to LocalStorage whenever items change
+  // 2. SAVE DATA (Runs only when items change AND loaded)
   useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(items));
-  }, [items]);
+    if (isLoaded) {
+      localStorage.setItem("cart", JSON.stringify(items));
+    }
+  }, [items, isLoaded]);
 
-  // ✅ 2. Add to Cart with Price Cleaning
-  const addToCart = (product: any) => {
-    setItems((prev) => {
-      // Handle ID: Prefer 'id', fallback to '_id'
-      const productId = product.id || product._id;
-      
-      // Handle Price: Ensure it's a number
-      let safePrice = product.price;
-      if (typeof safePrice === 'string') {
-        // Remove "$" and "," and convert to float
-        safePrice = parseFloat(safePrice.replace(/[^0-9.]/g, ''));
-      }
-
-      const existingItem = prev.find((item) => item.id === productId);
-
+  // --- ACTIONS ---
+  const addToCart = (newItem: CartItem) => {
+    setItems((currentItems) => {
+      const existingItem = currentItems.find((item) => item._id === newItem._id);
       if (existingItem) {
-        return prev.map((item) =>
-          item.id === productId
+        return currentItems.map((item) =>
+          item._id === newItem._id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
-
-      return [
-        ...prev,
-        {
-          id: productId,
-          _id: product._id, // Save this just in case
-          name: product.name,
-          price: safePrice, // Save the cleaned number
-          image: product.image,
-          slug: product.slug?.current || product.slug,
-          quantity: 1,
-        },
-      ];
+      return [...currentItems, { ...newItem, quantity: 1 }];
     });
+    setIsCartOpen(true);
   };
 
   const removeFromCart = (id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
+    setItems((currentItems) => currentItems.filter((item) => item._id !== id));
   };
 
   const updateQuantity = (id: string, quantity: number) => {
     if (quantity < 1) return;
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, quantity } : item))
+    setItems((currentItems) =>
+      currentItems.map((item) =>
+        item._id === id ? { ...item, quantity } : item
+      )
     );
   };
 
-  // ✅ 3. Calculate Total Safely
-  const getCartTotal = () => {
-    return items.reduce((total, item) => {
-        const itemPrice = typeof item.price === 'number' ? item.price : 0;
-        return total + itemPrice * item.quantity;
-    }, 0);
-  };
+  const clearCart = () => setItems([]);
+  const openCart = () => setIsCartOpen(true);
+  const closeCart = () => setIsCartOpen(false);
 
-  const getCartCount = () => {
-    return items.reduce((total, item) => total + item.quantity, 0);
-  };
-
-  const clearCart = () => {
-    setItems([]);
-  };
-
-  const cartTotal = items.reduce((total, item) => total + item.price * item.quantity, 0);
+  // --- CALCULATIONS (Variables, not functions) ---
+  const cartCount = items.reduce((total, item) => total + item.quantity, 0);
+  const cartTotal = items.reduce((total, item) => total + (item.price * item.quantity), 0);
 
   return (
     <CartContext.Provider
@@ -116,10 +101,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         addToCart,
         removeFromCart,
         updateQuantity,
-        getCartTotal,
-        getCartCount,
         clearCart,
-        cartTotal,
+        cartCount, // 👈 Passing number
+        cartTotal, // 👈 Passing number
+        isCartOpen,
+        openCart,
+        closeCart,
       }}
     >
       {children}
@@ -129,7 +116,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
 export function useCart() {
   const context = useContext(CartContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error("useCart must be used within a CartProvider");
   }
   return context;

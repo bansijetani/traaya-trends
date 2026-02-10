@@ -1,395 +1,234 @@
-"use client";
-
-import { ChevronDown, X, ShoppingBag, Eye, Heart, ChevronLeft, ChevronRight, Check, LayoutGrid, List, Filter } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
-import Link from "next/link";
 import { client } from "@/sanity/lib/client";
-import { urlFor } from "@/sanity/lib/image";
-import { useCart } from "@/context/CartContext"; // Import Cart Context
+import Image from "next/image";
+import Link from "next/link";
+// 👇 FIXED: Added 'X' and 'Check' to the imports
+import { ChevronDown, X, Check, Grid, LayoutGrid, Columns, ChevronLeft, ChevronRight } from "lucide-react";
+import AddToCartButton from "@/components/AddToCartButton";
+import Price from "@/components/Price";
+import MobileFilterBar from "@/components/MobileFilter"; 
+import ShopSidebar from "@/components/ShopSidebar";       
 
-// --- TYPES ---
-type Product = {
-  _id: string;
-  name: string;
-  price: number;
-  oldPrice?: number | null;
-  slug: { current: string };
-  image: any;
-  category: string;
-  stock?: number;
-  // These fields might not be in Sanity yet, so we make them optional or mock them for the UI
-  material?: string;
-  stoneColor?: string;
-  availability?: string;
-  badge?: string;
-  colors?: string[];
-  size?: string[];
-};
+export const dynamic = "force-dynamic";
+const ITEMS_PER_PAGE = 12;
 
-export default function Shop() {
-  const { addToCart } = useCart(); // Access Global Cart
-  
-  // --- UI STATE ---
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isSortOpen, setIsSortOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [loading, setLoading] = useState(true);
+// --- 1. DATA FETCHING ---
+async function getShopData() {
+  const categoryQuery = `*[_type == "category" && !defined(parent)] {
+    _id, name, "slug": slug.current, 
+    "imageUrl": image.asset->url,
+    "productCount": count(*[_type == "product" && references(^._id)])
+  } | order(productCount desc)`;
 
-  // --- DATA STATE ---
-  const [products, setProducts] = useState<Product[]>([]);
-  
-  // --- FILTER STATE ---
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
-  const [selectedPrice, setSelectedPrice] = useState<string[]>([]);
-  const [selectedMaterial, setSelectedMaterial] = useState<string[]>([]);
-  const [selectedStoneColor, setSelectedStoneColor] = useState<string[]>([]);
-  const [selectedSize, setSelectedSize] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState("Default");
+  const allCategoriesQuery = `*[_type == "category"] {
+    _id, name, "slug": slug.current
+  } | order(name asc)`;
 
-  // --- FETCH DATA FROM SANITY ---
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const query = `*[_type == "product"] | order(_createdAt desc){
-          _id,
-          name,
-          price,
-          oldPrice,
-          slug,
-          "image": images[0],
-          "category": category->name, // 👈 Fetches the name of the referenced category
-          stock,
-          description
-        }`;
-        
-        const data = await client.fetch(query);
-        
-        // Enrich data with mock fields to keep your UI filters working 
-        // (Since we haven't added Material/Stone to Sanity Schema yet)
-        const enrichedData = data.map((item: any) => ({
-          ...item,
-          material: "Gold", // Default for demo
-          stoneColor: "White", // Default for demo
-          availability: item.stock && item.stock > 0 ? "In Stock" : "Out of Stock",
-          colors: [],
-          size: ["5", "6", "7"] // Default sizes
-        }));
+  const productQuery = `*[_type == "product"] | order(_createdAt desc) {
+    _id, name, price, 
+    "stock": coalesce(stockLevel, 0),
+    "slug": slug.current,
+    "image": coalesce(image.asset->url, images[0].asset->url),
+    "categories": categories[]->slug.current
+  }`;
 
-        setProducts(enrichedData);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const [categoriesData, allCategoriesData, productsData] = await Promise.all([
+    client.fetch(categoryQuery),
+    client.fetch(allCategoriesQuery),
+    client.fetch(productQuery),
+  ]);
 
-    fetchProducts();
-  }, []);
+  return { categories: categoriesData || [], allCategories: allCategoriesData || [], products: productsData || [] };
+}
 
-  // --- FILTER & SORT LOGIC ---
-  const filteredProducts = useMemo(() => {
-    return products.filter(product => {
-      if (selectedCategory && product.category !== selectedCategory) return false;
-      if (selectedAvailability.length > 0 && !selectedAvailability.includes(product.availability || "")) return false;
-      if (selectedMaterial.length > 0 && !selectedMaterial.includes(product.material || "")) return false;
-      if (selectedStoneColor.length > 0 && !selectedStoneColor.includes(product.stoneColor || "")) return false;
-      
-      // Price Filter
-      if (selectedPrice.length > 0) {
-        const priceMatch = selectedPrice.some(range => {
-          if (range === "Under $500") return product.price < 500;
-          if (range === "Under $1000") return product.price < 1000;
-          if (range === "Under $2000") return product.price < 2000;
-          if (range === "Over $2000") return product.price >= 2000;
-          return false;
-        });
-        if (!priceMatch) return false;
-      }
-      return true;
-    }).sort((a, b) => {
-      if (sortBy === "Price Ascending") return a.price - b.price;
-      if (sortBy === "Price Descending") return b.price - a.price;
-      if (sortBy === "Title Ascending") return a.name.localeCompare(b.name);
-      if (sortBy === "Title Descending") return b.name.localeCompare(a.name);
-      return 0;
-    });
-  }, [products, selectedCategory, selectedAvailability, selectedPrice, selectedMaterial, selectedStoneColor, selectedSize, sortBy]);
+type SearchParamsType = Promise<{ [key: string]: string | string[] | undefined }>;
 
-  // --- HANDLERS ---
-  const toggleFilter = (item: string, state: string[], setState: any) => {
-    if (state.includes(item)) {
-      setState(state.filter((i: string) => i !== item));
-    } else {
-      setState([...state, item]);
-    }
+export default async function ShopPage(props: { searchParams: SearchParamsType }) {
+  const searchParams = await props.searchParams;
+  const { categories, allCategories, products } = await getShopData();
+
+  // Params
+  const categoryParam = typeof searchParams.category === 'string' ? searchParams.category : "";
+  const selectedCategories = categoryParam ? categoryParam.split(',') : [];
+  const stockParam = typeof searchParams.stock === 'string' ? searchParams.stock : ""; 
+  const priceParam = typeof searchParams.price === 'string' ? searchParams.price : "";
+  const sortParam = typeof searchParams.sort === 'string' ? searchParams.sort : "";
+  const gridParam = typeof searchParams.grid === 'string' ? searchParams.grid : "3"; // Default Mobile 2
+  const pageParam = typeof searchParams.page === 'string' ? Number(searchParams.page) : 1;
+
+  // Filter Logic
+  let filteredProducts = products;
+  if (selectedCategories.length > 0) {
+    filteredProducts = filteredProducts.filter((p: any) => p.categories && p.categories.some((catSlug: string) => selectedCategories.includes(catSlug)));
+  }
+  if (stockParam === "in_stock") filteredProducts = filteredProducts.filter((p: any) => p.stock > 0);
+  else if (stockParam === "out_of_stock") filteredProducts = filteredProducts.filter((p: any) => p.stock <= 0);
+
+  if (priceParam === "under_500") filteredProducts = filteredProducts.filter((p: any) => p.price < 500);
+  if (priceParam === "500_1000") filteredProducts = filteredProducts.filter((p: any) => p.price >= 500 && p.price <= 1000);
+  if (priceParam === "over_1000") filteredProducts = filteredProducts.filter((p: any) => p.price > 1000);
+
+  if (sortParam === "price_asc") filteredProducts.sort((a: any, b: any) => a.price - b.price);
+  else if (sortParam === "price_desc") filteredProducts.sort((a: any, b: any) => b.price - a.price);
+  else if (sortParam === "title_asc") filteredProducts.sort((a: any, b: any) => a.name.localeCompare(b.name));
+  else if (sortParam === "title_desc") filteredProducts.sort((a: any, b: any) => b.name.localeCompare(a.name));
+
+  // Pagination & Counts
+  const totalItems = filteredProducts.length;
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+  const paginatedProducts = filteredProducts.slice((pageParam - 1) * ITEMS_PER_PAGE, pageParam * ITEMS_PER_PAGE);
+
+  const categoryCounts = allCategories.reduce((acc: any, cat: any) => {
+      acc[cat.slug] = products.filter((p: any) => p.categories && p.categories.includes(cat.slug)).length;
+      return acc;
+  }, {});
+  const stockCounts = { inStock: products.filter((p: any) => p.stock > 0).length, outOfStock: products.filter((p: any) => p.stock <= 0).length };
+  const priceCounts = { under500: products.filter((p: any) => p.price < 500).length, range500_1000: products.filter((p: any) => p.price >= 500 && p.price <= 1000).length, above1000: products.filter((p: any) => p.price > 1000).length };
+
+  const buildUrl = (key: string, value: string | number) => {
+    const params = new URLSearchParams();
+    if (selectedCategories.length > 0) params.set("category", selectedCategories.join(','));
+    if (stockParam) params.set("stock", stockParam);
+    if (priceParam) params.set("price", priceParam);
+    if (sortParam) params.set("sort", sortParam);
+    if (gridParam) params.set("grid", gridParam);
+    if (key === "page") params.set("page", value.toString());
+    if (value && key !== "page") params.set(key, value.toString());
+    else if (!value && key !== "page") params.delete(key);
+    return `/shop?${params.toString()}`;
   };
 
-  const clearAllFilters = () => {
-    setSelectedCategory(null);
-    setSelectedAvailability([]);
-    setSelectedPrice([]);
-    setSelectedMaterial([]);
-    setSelectedStoneColor([]);
-    setSelectedSize([]);
+  const clearAllUrl = "/shop";
+  const currentCategory = allCategories.find((c: any) => c.slug === selectedCategories[0]);
+  const title = selectedCategories.length === 1 ? (currentCategory?.name || "Category") : "All Products";
+  const getGridClass = () => {
+      if (gridParam === "1") return "grid-cols-1";
+      if (gridParam === "2") return "grid-cols-2";
+      if (gridParam === "4") return "grid-cols-2 md:grid-cols-4";
+      return "grid-cols-2 md:grid-cols-3"; 
   };
-
-  const formatPrice = (price: number) => `$${price.toLocaleString()}`;
-
-  const getImageUrl = (image: any) => {
-    return image ? urlFor(image).width(500).url() : "/images/placeholder.jpg";
-  };
-
-  // Add Item to Cart Directly
-  const handleQuickAdd = (e: React.MouseEvent, product: Product) => {
-    e.preventDefault(); // Prevent navigating to product page
-    addToCart({
-      id: product._id,
-      name: product.name,
-      price: product.price,
-      image: getImageUrl(product.image),
-      quantity: 1,
-      slug: product.slug.current
-    });
-    alert("Added to bag!"); // Simple feedback
-  };
-
-  // Mock Categories for UI
-  const subCategories = [
-    { name: "Bangle", img: "/images/cat-bracelets.jpg" },
-    { name: "Tennis", img: "/images/cat-necklaces.jpg" },
-    { name: "Stacking", img: "/images/cat-rings.jpg" },
-    { name: "Cuff", img: "/images/cat-earrings.jpg" },
-    { name: "Chain", img: "/images/cat-new-in.jpg" },
-  ];
-
-  const sortOptions = ["Default", "Title Ascending", "Title Descending", "Price Ascending", "Price Descending"];
 
   return (
-    <main className="min-h-screen bg-white text-[#1A1A1A] pt-[140px]">
-
-      <div className="border-b border-[#E5E5E5]">
-        <div className="max-w-[1600px] mx-auto px-6 py-4 text-xs font-medium uppercase tracking-widest text-[#888]">
-          <Link href="/" className="hover:text-[#1A1A1A]">Home</Link> <span className="mx-2">/</span> <span className="text-[#1A1A1A]">Shop</span>
-        </div>
-      </div>
-
-      <div className="max-w-[1600px] mx-auto px-6 pt-12 pb-24">
+    <div className="bg-white min-h-screen pb-24">
+      <div className="max-w-[1600px] mx-auto px-6 pt-32 md:pt-40 pb-8">
         
-        {/* --- CATEGORY HEADER --- */}
-        <div className="mb-16">
-          <div className="flex flex-col lg:flex-row justify-between items-start gap-8 mb-12">
-            <div>
-              <h1 className="font-serif text-4xl lg:text-5xl uppercase tracking-wide mb-2">
-                All Products <sup className="text-sm text-[#888] font-sans">{filteredProducts.length}</sup>
-              </h1>
+        {/* HEADER */}
+        <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-6">
+            <Link href="/" className="hover:text-primary">Home</Link> <span className="mx-2">—</span> <span className="text-primary">{title}</span>
+        </div>
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 mb-8 border-b border-gray-100 pb-8">
+            <div className="relative">
+                <h1 className="font-serif text-4xl md:text-6xl text-primary uppercase tracking-tight">{title}</h1>
+                <span className="absolute -top-2 -right-6 text-sm font-bold text-secondary">{filteredProducts.length}</span>
             </div>
-            <p className="text-[#555] text-sm leading-relaxed max-w-xl font-sans">
-              Discover our collection. From classic gold bands to modern statement pieces.
-            </p>
-          </div>
-
-          <div className="flex justify-start lg:justify-center gap-8 lg:gap-16 overflow-x-auto pb-4 scrollbar-hide">
-            {subCategories.map((cat, i) => (
-              <div 
-                key={i} 
-                onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
-                className="flex flex-col items-center gap-4 min-w-[100px] cursor-pointer group"
-              >
-                <div className={`w-24 h-24 lg:w-32 lg:h-32 rounded-full overflow-hidden border transition-all p-1 
-                  ${selectedCategory === cat.name ? "border-[#A89160] scale-105" : "border-transparent group-hover:border-[#A89160]"}`}
-                >
-                  <div className="w-full h-full rounded-full overflow-hidden bg-gray-100">
-                    {/* Using placeholder for category images as they aren't in Sanity yet */}
-                    <img src={cat.img} alt={cat.name} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" />
-                  </div>
-                </div>
-                <span className={`text-xs font-bold uppercase tracking-widest transition-colors 
-                  ${selectedCategory === cat.name ? "text-[#A89160]" : "group-hover:text-[#A89160]"}`}>
-                  {cat.name}
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-12 border-t border-[#E5E5E5] pt-12">
-          
-          {/* --- SIDEBAR FILTERS --- */}
-          <aside className={`lg:w-[260px] shrink-0 space-y-10 ${isSidebarOpen ? 'fixed inset-0 z-50 bg-white p-6 overflow-y-auto' : 'hidden lg:block'}`}>
-            <div className="lg:hidden flex justify-between items-center mb-6">
-              <span className="font-bold uppercase tracking-widest">Filters</span>
-              <button onClick={() => setIsSidebarOpen(false)}><X size={24}/></button>
-            </div>
-
-            {/* Availability */}
-            <div>
-              <h3 className="font-serif text-lg mb-4 cursor-pointer">Availability</h3>
-              <ul className="space-y-3">
-                {["In Stock", "Out of Stock"].map((item) => (
-                  <li key={item} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleFilter(item, selectedAvailability, setSelectedAvailability)}>
-                    <div className={`w-4 h-4 border rounded-sm flex items-center justify-center ${selectedAvailability.includes(item) ? "bg-[#1A1A1A] border-[#1A1A1A]" : "border-[#E5E5E5]"}`}>
-                      {selectedAvailability.includes(item) && <Check size={10} className="text-white" />}
-                    </div>
-                    <span className={`text-sm ${selectedAvailability.includes(item) ? "text-[#1A1A1A] font-bold" : "text-[#555]"}`}>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="w-full h-px bg-[#E5E5E5]"></div>
-
-            {/* Price */}
-            <div>
-              <h3 className="font-serif text-lg mb-4 cursor-pointer">Price</h3>
-              <ul className="space-y-3">
-                {["Under $500", "Under $1000", "Under $2000", "Over $2000"].map((item) => (
-                  <li key={item} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleFilter(item, selectedPrice, setSelectedPrice)}>
-                    <div className={`w-4 h-4 border rounded-sm flex items-center justify-center ${selectedPrice.includes(item) ? "bg-[#1A1A1A] border-[#1A1A1A]" : "border-[#E5E5E5]"}`}>
-                      {selectedPrice.includes(item) && <Check size={10} className="text-white" />}
-                    </div>
-                    <span className={`text-sm ${selectedPrice.includes(item) ? "text-[#1A1A1A] font-bold" : "text-[#555]"}`}>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="w-full h-px bg-[#E5E5E5]"></div>
-
-            {/* Material */}
-            <div>
-              <h3 className="font-serif text-lg mb-4 cursor-pointer">Material</h3>
-              <ul className="space-y-3">
-                {["Gold", "Sterling Silver", "White Gold", "Pink Gold"].map((item) => (
-                  <li key={item} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleFilter(item, selectedMaterial, setSelectedMaterial)}>
-                    <div className={`w-4 h-4 border rounded-sm flex items-center justify-center ${selectedMaterial.includes(item) ? "bg-[#1A1A1A] border-[#1A1A1A]" : "border-[#E5E5E5]"}`}>
-                      {selectedMaterial.includes(item) && <Check size={10} className="text-white" />}
-                    </div>
-                    <span className={`text-sm ${selectedMaterial.includes(item) ? "text-[#1A1A1A] font-bold" : "text-[#555]"}`}>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </aside>
-
-          {/* --- MAIN CONTENT --- */}
-          <div className="flex-1">
-            
-            <div className="flex flex-wrap justify-between items-center mb-8 gap-4">
-              <div className="flex items-center gap-6">
-                <button className="lg:hidden flex items-center gap-2 font-bold uppercase tracking-widest text-sm" onClick={() => setIsSidebarOpen(true)}>
-                  <Filter size={16}/> Filters
-                </button>
-                <div className="hidden lg:flex items-center gap-6">
-                   <span className="font-bold uppercase tracking-widest text-sm">Active Filters:</span>
-                   <button onClick={clearAllFilters} className="text-sm border-b border-black pb-0.5 hover:text-[#A89160] transition-colors">Clear all</button>
+        {/* TOP CATEGORIES (Slider) */}
+        <div className="flex pt-4 flex-nowrap md:flex-wrap overflow-x-auto md:overflow-visible justify-start md:justify-center gap-4 md:gap-10 mb-8 border-b border-gray-100 pb-8 px-4 md:px-0 -mx-6 md:mx-0 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <Link href={buildUrl('category', '')} className="group flex flex-col items-center gap-3 flex-shrink-0 snap-center">
+                <div className={`relative w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden border transition-all duration-300 bg-primary text-white ${selectedCategories.length === 0 ? 'border-secondary ring-1 ring-secondary ring-offset-4' : 'border-transparent group-hover:border-secondary'}`}>
+                    <div className="w-full h-full flex items-center justify-center text-xs font-serif tracking-widest uppercase">All</div>
                 </div>
-              </div>
-              
-              <div className="flex items-center gap-6">
-                <div className="hidden md:flex items-center gap-3 text-[#CCCCCC]">
-                  <LayoutGrid size={20} className={`cursor-pointer ${viewMode === 'grid' ? 'text-[#A89160]' : 'hover:text-[#1A1A1A]'}`} onClick={() => setViewMode('grid')} />
-                  <List size={20} className={`cursor-pointer ${viewMode === 'list' ? 'text-[#A89160]' : 'hover:text-[#1A1A1A]'}`} onClick={() => setViewMode('list')} />
+                <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${selectedCategories.length === 0 ? 'text-secondary' : 'text-primary'}`}>All</span>
+            </Link>
+            {categories.slice(0, 5).map((cat: any) => (
+                <Link key={cat._id} href={`/shop?category=${cat.slug}`} className="group flex flex-col items-center gap-3 flex-shrink-0 snap-center">
+                    <div className={`relative w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden border transition-all duration-300 ${selectedCategories.includes(cat.slug) ? 'border-secondary ring-1 ring-secondary ring-offset-4' : 'border-gray-100 group-hover:border-secondary shadow-sm'}`}>
+                        {cat.imageUrl ? <Image src={cat.imageUrl} alt={cat.name || "Category"} fill className="object-cover" /> : <div className="w-full h-full bg-gray-100" />}
+                    </div>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${selectedCategories.includes(cat.slug) ? 'text-secondary' : 'text-primary'}`}>{cat.name}</span>
+                </Link>
+            ))}
+        </div>
+
+        {/* MOBILE INLINE FILTER BAR */}
+        <MobileFilterBar 
+            allCategories={allCategories} 
+            categoryCounts={categoryCounts} 
+            stockCounts={stockCounts} 
+            priceCounts={priceCounts} 
+        />
+
+        {/* DESKTOP TOOLBAR (Hidden on Mobile) */}
+        <div className="hidden lg:flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-100 pb-6 mb-12 gap-6">
+            <div className="flex flex-wrap items-center gap-2">
+                <span className="font-serif text-lg mr-4">Active Filters:</span>
+                {selectedCategories.map(slug => (
+                    <span key={slug} className="bg-secondary text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">{allCategories.find((c: any) => c.slug === slug)?.name || slug} <X size={12} /></span>
+                ))}
+                {stockParam && <span className="bg-secondary text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">{stockParam.replace('_', ' ')} <X size={12} /></span>}
+                {(selectedCategories.length > 0 || stockParam || priceParam) ? <Link href={clearAllUrl} className="text-[10px] font-bold uppercase underline text-gray-400 hover:text-red-500 ml-2">Clear All</Link> : <span className="text-sm text-gray-400 italic">None</span>}
+            </div>
+            <div className="flex items-center gap-6 ml-auto">
+                <div className="flex items-center gap-3 text-gray-300">
+                    <Link href={buildUrl('grid', '2')}><Columns size={20} className={gridParam === '2' ? 'text-primary' : 'hover:text-primary'} /></Link>
+                    <Link href={buildUrl('grid', '3')}><Grid size={20} className={gridParam === '3' ? 'text-primary' : 'hover:text-primary'} /></Link>
+                    <Link href={buildUrl('grid', '4')} className="hidden md:block"><LayoutGrid size={20} className={gridParam === '4' ? 'text-primary' : 'hover:text-primary'} /></Link>
                 </div>
-                
+                <div className="h-4 w-px bg-gray-200"></div>
                 <div className="relative group">
-                  <button 
-                    onClick={() => setIsSortOpen(!isSortOpen)}
-                    className="flex items-center gap-2 text-sm uppercase tracking-widest border border-[#A89160] px-6 py-3 hover:border-[#1A1A1A] transition-colors w-56 justify-between"
-                  >
-                    SORT BY ({sortBy.replace("Price: ", "").replace("Title: ", "").split(" ")[0]}) 
-                    <ChevronDown size={16} className={`transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {isSortOpen && (
-                    <div className="absolute top-full left-0 w-full bg-white border border-[#E5E5E5] shadow-lg z-50 mt-[-1px]">
-                      <ul className="py-2">
-                        {sortOptions.map((option) => (
-                          <li 
-                            key={option}
-                            onClick={() => {
-                              setSortBy(option);
-                              setIsSortOpen(false);
-                            }}
-                            className={`px-6 py-2 text-sm uppercase tracking-widest cursor-pointer hover:bg-[#F9F9F9] ${sortBy === option ? 'bg-[#A89160] text-white font-bold' : 'text-[#1A1A1A]'}`}
-                          >
-                            {option.replace("Price: ", "").replace("Title: ", "")}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                     <button className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest hover:text-secondary">Sort by <ChevronDown size={14} /></button>
+                     <div className="absolute right-0 top-full bg-white shadow-xl border border-gray-100 w-48 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 flex flex-col">
+                        <Link href={buildUrl('sort', '')} className="px-6 py-3 text-xs hover:bg-gray-50">Default</Link>
+                        <Link href={buildUrl('sort', 'title_asc')} className="px-6 py-3 text-xs hover:bg-gray-50">Title: A-Z</Link>
+                        <Link href={buildUrl('sort', 'title_desc')} className="px-6 py-3 text-xs hover:bg-gray-50">Title: Z-A</Link>
+                        <Link href={buildUrl('sort', 'price_asc')} className="px-6 py-3 text-xs hover:bg-gray-50">Price: Low to High</Link>
+                        <Link href={buildUrl('sort', 'price_desc')} className="px-6 py-3 text-xs hover:bg-gray-50">Price: High to Low</Link>
+                     </div>
                 </div>
-              </div>
             </div>
+        </div>
 
-            {loading ? (
-               <div className="flex justify-center py-20">
-                 <div className="w-10 h-10 border-4 border-[#B87E58] border-t-transparent rounded-full animate-spin"></div>
-               </div>
-            ) : filteredProducts.length === 0 ? (
-              <div className="py-20 text-center text-[#555]">
-                <p className="text-lg">No products match your filters.</p>
-                <button onClick={clearAllFilters} className="mt-4 border-b border-[#1A1A1A] text-[#1A1A1A] font-bold pb-1">Clear all filters</button>
-              </div>
-            ) : (
-              <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'} gap-x-8 gap-y-12`}>
-                {filteredProducts.map((product) => (
-                  <Link href={`/product/${product.slug.current}`} key={product._id} className={`group cursor-pointer ${viewMode === 'list' ? 'flex gap-8 items-center' : ''}`}>
-                    
-                    <div className={`relative bg-[#F9F9F9] aspect-[4/5] ${viewMode === 'list' ? 'w-1/3' : 'w-full'} overflow-hidden mb-4`}>
-                      {product.badge && (
-                        <span className={`absolute top-0 left-0 text-[10px] font-bold text-white px-3 py-1.5 z-10 tracking-widest uppercase bg-[#A89160]`}>
-                          {product.badge}
-                        </span>
-                      )}
+        {/* MAIN CONTENT */}
+        <div className="flex flex-col lg:flex-row gap-12">
+            
+            {/* DESKTOP SIDEBAR */}
+            <ShopSidebar 
+                allCategories={allCategories} 
+                categoryCounts={categoryCounts} 
+                stockCounts={stockCounts} 
+                priceCounts={priceCounts} 
+            />
 
-                      <div className="w-full h-full p-8 flex items-center justify-center relative">
-                         {/* Render Real Image */}
-                        <img src={getImageUrl(product.image)} alt={product.name} className="max-w-full max-h-full object-contain transition-transform duration-700 group-hover:scale-110 mix-blend-multiply" />
-                      </div>
-
-                      {/* Hover Actions */}
-                      <div className="absolute top-4 right-4 flex flex-col gap-2 translate-x-10 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300 z-20">
-                        <button className="bg-white text-[#1A1A1A] w-10 h-10 flex items-center justify-center hover:bg-[#A89160] hover:text-white transition-colors shadow-sm"><Heart size={18} strokeWidth={1.5} /></button>
-                        
-                        {/* Quick Add To Cart */}
-                        <button 
-                          onClick={(e) => handleQuickAdd(e, product)}
-                          className="bg-white text-[#1A1A1A] w-10 h-10 flex items-center justify-center hover:bg-[#A89160] hover:text-white transition-colors shadow-sm"
-                        >
-                          <ShoppingBag size={18} strokeWidth={1.5} />
-                        </button>
-                        
-                        <button className="bg-white text-[#1A1A1A] w-10 h-10 flex items-center justify-center hover:bg-[#A89160] hover:text-white transition-colors shadow-sm"><Eye size={18} strokeWidth={1.5} /></button>
-                      </div>
+            {/* PRODUCT GRID */}
+            <div className="flex-1">
+                 {filteredProducts.length === 0 ? (
+                    <div className="h-96 flex flex-col items-center justify-center text-center bg-gray-50 rounded-sm p-12">
+                        <h3 className="font-serif text-2xl text-primary mb-2">No products found</h3>
+                        <Link href="/shop" className="bg-primary text-white px-6 py-3 text-xs font-bold uppercase tracking-widest hover:bg-secondary">Clear All</Link>
                     </div>
-
-                    <div className={`text-left ${viewMode === 'list' ? 'flex-1' : ''}`}>
-                      <h3 className="text-base font-serif text-[#1A1A1A] mb-1 leading-snug group-hover:text-[#A89160] transition-colors">{product.name}</h3>
-                      <div className="flex items-center gap-3 text-sm font-medium mb-2">
-                        <span className={product.oldPrice ? "text-[#D85C5C]" : "text-[#1A1A1A]"}>{formatPrice(product.price)}</span>
-                        {product.oldPrice && <span className="text-[#999] line-through decoration-1">{formatPrice(product.oldPrice)}</span>}
-                      </div>
-                      <p className={`text-[10px] font-bold uppercase tracking-widest ${product.stock && product.stock > 0 ? "text-[#555]" : "text-red-500"}`}>
-                        {product.stock && product.stock > 0 ? "In Stock" : "Out of Stock"}
-                      </p>
-                    </div>
-
-                  </Link>
-                ))}
-              </div>
-            )}
-
-            {/* Pagination UI (Static for now) */}
-            {filteredProducts.length > 0 && (
-              <div className="flex items-center justify-end gap-2 mt-20">
-                <button className="w-10 h-10 flex items-center justify-center border border-[#E5E5E5] hover:border-[#1A1A1A] transition-colors"><ChevronLeft size={16}/></button>
-                <button className="w-10 h-10 flex items-center justify-center bg-[#1A1A1A] text-white font-bold text-sm">1</button>
-                <button className="w-10 h-10 flex items-center justify-center border border-[#E5E5E5] hover:border-[#1A1A1A] transition-colors"><ChevronRight size={16}/></button>
-              </div>
-            )}
-
-          </div>
+                 ) : (
+                    <>
+                        <div className={`grid gap-x-6 gap-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 ${getGridClass()}`}>
+                            {paginatedProducts.map((product: any) => (
+                                <div key={product._id} className="group flex flex-col">
+                                    <div className="relative aspect-[3/4] bg-gray-50 mb-4 overflow-hidden rounded-sm">
+                                        <Link href={`/product/${product.slug}`} className="block w-full h-full">
+                                            {product.image ? <Image src={product.image} alt={product.name || "Img"} fill className="object-cover transition-transform duration-700 group-hover:scale-110" /> : <div className="w-full h-full bg-gray-100" />}
+                                        </Link>
+                                        {product.stock <= 0 && <div className="absolute top-0 left-0 w-full bg-black/80 text-white text-[10px] font-bold uppercase py-2 text-center z-10">Out of Stock</div>}
+                                        <div className="absolute bottom-3 right-3 z-20"><AddToCartButton product={product} styleType="icon" stock={product.stock} /></div>
+                                    </div>
+                                    <div>
+                                        <Link href={`/product/${product.slug}`}><h3 className="font-serif text-base text-primary hover:text-secondary line-clamp-1">{product.name}</h3></Link>
+                                        <div className="flex gap-2 items-center mt-1"><span className="text-sm font-bold text-secondary"><Price amount={product.price} /></span></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        {totalPages > 1 && (
+                            <div className="flex justify-center items-center gap-3 mt-16 pt-10 border-t border-gray-100">
+                                {pageParam > 1 && <Link href={buildUrl('page', pageParam - 1)} className="w-10 h-10 flex items-center justify-center border border-gray-200 rounded-sm hover:border-primary hover:text-primary"><ChevronLeft size={16} /></Link>}
+                                {[...Array(totalPages)].map((_, idx) => (
+                                    <Link key={idx} href={buildUrl('page', idx + 1)} className={`w-10 h-10 flex items-center justify-center text-xs font-bold border rounded-sm transition-all ${idx + 1 === pageParam ? 'bg-primary text-white border-primary' : 'bg-white text-gray-500 border-gray-200 hover:border-primary'}`}>{idx + 1}</Link>
+                                ))}
+                                {pageParam < totalPages && <Link href={buildUrl('page', pageParam + 1)} className="w-10 h-10 flex items-center justify-center border border-gray-200 rounded-sm hover:border-primary hover:text-primary"><ChevronRight size={16} /></Link>}
+                            </div>
+                        )}
+                    </>
+                 )}
+            </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

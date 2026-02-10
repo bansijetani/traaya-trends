@@ -4,9 +4,11 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import ThemeProvider from "@/components/ThemeProvider";
 import { CartProvider } from "@/context/CartContext";
+import { CurrencyProvider } from "@/context/CurrencyContext"; // 👈 1. ADD THIS IMPORT
 import { Toaster } from "react-hot-toast";
+import CartDrawer from "@/components/CartDrawer";
 
-// 👇 Import Sanity Client to fetch colors
+// Import Sanity Client to fetch colors
 import { client } from "@/sanity/lib/client";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -17,7 +19,7 @@ export const metadata: Metadata = {
   description: "Luxury Jewelry Store",
 };
 
-// 👇 1. Fetch Theme Settings from Sanity
+// Fetch Theme Settings from Sanity
 async function getThemeSettings() {
   const query = `*[_type == "settings"][0]{
     primaryColor,
@@ -32,10 +34,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // 👇 2. Get Data
+  // Get Data
   const settings = await getThemeSettings();
 
-  // 👇 3. Create CSS Variable Object with Fallbacks
+  // Create CSS Variable Object with Fallbacks
   const themeVariables = {
     "--primary-color": settings?.primaryColor || "#1A1A1A",
     "--secondary-color": settings?.secondaryColor || "#B87E58",
@@ -43,18 +45,22 @@ export default async function RootLayout({
   } as React.CSSProperties;
 
   return (
-    <html lang="en">
-      {/* 👇 4. Apply Variables & Tailwind Classes to Body */}
+    <html lang="en" suppressHydrationWarning>
+      {/* Apply Variables & Tailwind Classes to Body */}
       <body 
         className={`${inter.variable} ${playfair.variable} font-sans antialiased bg-page text-primary`}
         style={themeVariables}
       >
         <Providers>
           <ThemeProvider>
-            <CartProvider>
-              {children}
-              <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
-            </CartProvider>
+            {/* 👇 2. WRAP CURRENCY PROVIDER HERE */}
+            <CurrencyProvider>
+              <CartProvider>
+                <CartDrawer />
+                {children}
+                <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
+              </CartProvider>
+            </CurrencyProvider>
           </ThemeProvider>
         </Providers>
       </body>

@@ -2,6 +2,7 @@
 
 import { Facebook, Twitter, Instagram, Pin, ChevronUp, ChevronDown } from "lucide-react";
 import Link from "next/link";
+import CurrencyLanguageSwitcher from "@/components/CurrencyLanguageSwitcher";
 
 export default function Footer() {
   const scrollToTop = () => {
@@ -90,19 +91,25 @@ export default function Footer() {
           </div>
 
           {/* Bottom Bar */}
-          <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
-            <p className="text-white/60 text-xs">All Rights Reserved 2025 TRAAYA TRENDS.</p>
-            
-            <div className="flex items-center gap-6">
-               {/* Currency Selector (Mock) */}
-               <button className="flex items-center gap-2 text-xs text-white/80 border border-white/20 px-3 py-2 rounded hover:bg-white/5 transition-colors">
-                 United States (USD $) <ChevronDown size={12} />
-               </button>
-               
-               {/* Payment Icons */}
-               <img src={paymentIcons} alt="Payment Methods" className="h-5 opacity-80" />
-            </div>
+          <div className="mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
+          
+          {/* LEFT: Currency Switcher */}
+          <div className="order-2 md:order-1">
+             <CurrencyLanguageSwitcher mode="dark" />
           </div>
+
+          {/* RIGHT: Copyright & Cards */}
+          <div className="order-1 md:order-2 flex flex-col md:flex-row items-center gap-6">
+             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+               © 2024 Traaya Trends. All Rights Reserved.
+             </p>
+             {/* Payment Icons (Optional) */}
+             <div className="flex gap-2 opacity-60 grayscale hover:grayscale-0 transition-all">
+                {/* You can add payment icons images here later */}
+             </div>
+          </div>
+
+        </div>
 
         </div>
 

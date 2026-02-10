@@ -4,11 +4,13 @@ import Link from "next/link";
 import { ArrowRight, Grid3X3, ArrowDown } from "lucide-react";
 import AddToCartButton from "@/components/AddToCartButton"; 
 import HeroSlider from "@/components/HeroSlider";
+import Price from "@/components/Price";
+
 
 // --- DATA FETCHING ---
 async function getHeroProducts() {
   const query = `*[_type == "product"] | order(_createdAt desc)[0...5] {
-    _id, name, price, "slug": slug.current,
+    _id, name, price, "slug": slug.current, "stock": coalesce(stockLevel, 0),
     "image": coalesce(image.asset->url, images[0].asset->url)
   }`;
   return await client.fetch(query);
@@ -27,7 +29,7 @@ async function getCategories() {
 
 async function getTrending() {
   const query = `*[_type == "product"] | order(price desc)[0...8] {
-    _id, name, price, "slug": slug.current,
+    _id, name, price, "slug": slug.current, "stock": coalesce(stockLevel, 0),
     "image": coalesce(image.asset->url, images[0].asset->url)
   }`;
   return await client.fetch(query);
@@ -35,7 +37,7 @@ async function getTrending() {
 
 async function getSpotlight() {
   const query = `*[_type == "product"][5...8] {
-    _id, name, price, "slug": slug.current,
+    _id, name, price, "slug": slug.current, "stock": coalesce(stockLevel, 0),
     "image": coalesce(image.asset->url, images[0].asset->url)
   }`;
   return await client.fetch(query);
@@ -43,7 +45,7 @@ async function getSpotlight() {
 
 async function getBestSellers() {
   const query = `*[_type == "product"] | order(price desc)[0...4] {
-    _id, name, price, "slug": slug.current,
+    _id, name, price, "slug": slug.current, "stock": coalesce(stockLevel, 0),
     "image": coalesce(image.asset->url, images[0].asset->url)
   }`;
   return await client.fetch(query);
@@ -51,7 +53,7 @@ async function getBestSellers() {
 
 async function getMainCatalog() {
   const query = `*[_type == "product"] | order(_createdAt asc)[0...12] {
-    _id, name, price, "slug": slug.current,
+    _id, name, price, "slug": slug.current, "stock": coalesce(stockLevel, 0),
     "image": coalesce(image.asset->url, images[0].asset->url)
   }`;
   return await client.fetch(query);
@@ -182,15 +184,18 @@ export default async function Home() {
                                     className="object-cover transition-transform duration-700 group-hover:scale-105"
                                 />
                             )}
-                            <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-white via-white/90 to-transparent p-8 text-primary translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                                <span className="bg-primary text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest mb-2 inline-block">New In</span>
-                                <h2 className="font-serif text-3xl mb-1">{heroProducts[0].name}</h2>
-                                <p className="font-bold text-lg mb-10 text-secondary">${heroProducts[0].price?.toLocaleString()}</p>
+                            <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-white via-white/90 to-transparent p-6 md:p-10 flex flex-col items-start gap-3">
+                                <span className="bg-primary text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest">New In</span>
+                                <h2 className="font-serif text-3xl md:text-4xl text-primary leading-tight">{heroProducts[0].name}</h2>
+                                <div className="font-bold text-xl text-secondary">
+                                   <Price amount={heroProducts[0].price} />
+                                </div>
+                                {/* Button is now inside the flow */}
+                                <div className="mt-2">
+                                   <AddToCartButton product={heroProducts[0]} styleType="minimal" stock={heroProducts[0].stock} />
+                                </div>
                             </div>
                         </Link>
-                        <div className="absolute bottom-8 left-8 z-20 pointer-events-auto">
-                           <AddToCartButton product={heroProducts[0]} styleType="minimal" />
-                        </div>
                     </div>
                 )}
 
@@ -213,10 +218,10 @@ export default async function Home() {
                                      <Link href={`/product/${product.slug}`}>
                                          <h3 className="font-serif text-sm text-primary hover:text-secondary hover:underline">{product.name}</h3>
                                      </Link>
-                                     <p className="text-xs font-bold text-secondary mt-1">${product.price?.toLocaleString()}</p>
+                                     <Price amount={product.price} className="text-secondary text-sm font-bold" />
                                  </div>
                                 <div className="flex-shrink-0">
-                                    <AddToCartButton product={product} styleType="icon" />
+                                    <AddToCartButton product={product} styleType="icon" stock={product.stock} />
                                 </div>
                              </div>
                          </div>
@@ -244,12 +249,12 @@ export default async function Home() {
                                      <Image src={product.image} alt={product.name} fill className="object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-500" />
                                  )}
                              </Link>
-                             <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                                 <AddToCartButton product={product} styleType="icon" />
+                             <div className="absolute bottom-4 right-4 z-20">
+                                 <AddToCartButton product={product} styleType="icon" stock={product.stock} />
                              </div>
                          </div>
                          <h3 className="font-serif text-lg truncate text-white">{product.name}</h3>
-                         <p className="text-secondary text-sm font-bold">${product.price?.toLocaleString()}</p>
+                         <Price amount={product.price} className="text-secondary text-sm font-bold" />
                      </div>
                  ))}
              </div>
@@ -268,36 +273,30 @@ export default async function Home() {
                 <div className="w-20 h-[1px] bg-gray-200 mx-auto"></div>
             </div>
 
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="flex md:grid md:grid-cols-3 gap-4 md:gap-8 overflow-x-auto md:overflow-visible pb-8 md:pb-0 no-scrollbar snap-x">
                  {spotlight.map((product: any, idx: number) => (
-                     <div key={product._id} className="group border border-gray-100 hover:border-secondary hover:shadow-xl transition-all duration-300 flex flex-col bg-white rounded-sm">
-                         
-                         <div className="text-center p-6 pb-2">
+                     <div key={product._id} className="min-w-[85vw] md:min-w-0 snap-center group border border-gray-100 hover:border-secondary hover:shadow-xl transition-all duration-300 flex flex-col bg-white rounded-sm">
+                         <div className="text-center p-4 md:p-6 pb-2">
                              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Exclusive 0{idx+1}</span>
                              <Link href={`/product/${product.slug}`}>
-                                <h3 className="font-serif text-2xl mt-2 text-primary group-hover:text-secondary transition-colors">{product.name}</h3>
+                                <h3 className="font-serif text-xl md:text-2xl mt-2 text-primary group-hover:text-secondary transition-colors line-clamp-2">{product.name}</h3>
                              </Link>
                          </div>
-
-                         <div className="relative aspect-square w-full overflow-hidden mt-4 bg-gray-50">
+                         {/* Image Area */}
+                         <div className="relative aspect-square w-full overflow-hidden mt-2 bg-gray-50">
                              <Link href={`/product/${product.slug}`}>
                                  {product.image && (
-                                     <Image 
-                                         src={product.image} 
-                                         alt={product.name} 
-                                         fill 
-                                         className="object-cover transition-transform duration-700 group-hover:scale-105" 
-                                     />
+                                     <Image src={product.image} alt={product.name} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
                                  )}
                              </Link>
                          </div>
-
-                         <div className="flex flex-col gap-3 p-6 pt-4 mt-auto">
+                         {/* Footer Area */}
+                         <div className="flex flex-col gap-3 p-4 md:p-6 pt-4 mt-auto">
                              <div className="flex justify-between items-center text-sm font-bold border-b border-gray-100 pb-4 text-primary">
                                  <span>Price</span>
-                                 <span>${product.price?.toLocaleString()}</span>
+                                 <Price amount={product.price} />
                              </div>
-                             <AddToCartButton product={product} styleType="full" />
+                             <AddToCartButton product={product} styleType="full" stock={product.stock} />
                          </div>
                      </div>
                  ))}
@@ -330,8 +329,10 @@ export default async function Home() {
                              <div className="absolute top-4 left-4 bg-primary text-white text-[10px] font-bold px-3 py-1 uppercase tracking-widest z-10 shadow-lg">
                                  Best Seller
                              </div>
-                             <div className="absolute bottom-4 right-4 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-20">
-                                 <AddToCartButton product={product} styleType="icon" />
+                             <div className="absolute bottom-4 right-4 z-20">
+                                 <div className="flex-shrink-0">
+                                     <AddToCartButton product={product} styleType="icon" stock={product.stock} />
+                                 </div>
                              </div>
                          </div>
                          
@@ -339,7 +340,7 @@ export default async function Home() {
                              <Link href={`/product/${product.slug}`}>
                                 <h3 className="font-serif text-lg text-primary mb-1 group-hover:text-secondary transition-colors">{product.name}</h3>
                              </Link>
-                             <p className="text-sm font-bold text-secondary">${product.price?.toLocaleString()}</p>
+                             <Price amount={product.price} className="text-secondary text-sm font-bold" />
                          </div>
                      </div>
                  ))}
@@ -362,12 +363,12 @@ export default async function Home() {
                                  {product.image && <Image src={product.image} alt={product.name} fill className="object-contain p-4 mix-blend-multiply transition-transform duration-500 group-hover:scale-105" />}
                              </Link>
                              <div className="absolute bottom-0 left-0 w-full translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-20">
-                                 <AddToCartButton product={product} styleType="full" />
+                                 <AddToCartButton product={product} styleType="full" stock={product.stock} />
                              </div>
                          </div>
                          <div>
                              <Link href={`/product/${product.slug}`}><h3 className="font-serif text-sm truncate text-primary hover:text-secondary transition-colors">{product.name}</h3></Link>
-                             <p className="text-xs font-bold text-secondary mt-1">${product.price?.toLocaleString()}</p>
+                             <Price amount={product.price} className="text-secondary text-xs font-bold mt-1" />
                          </div>
                      </div>
                  ))}
