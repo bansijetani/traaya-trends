@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Mail, ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
+import { Mail, CheckCircle, Loader2, ChevronLeft } from "lucide-react";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isSent, setIsSent] = useState(false); // 👈 New State for Success UI
+  const [isSent, setIsSent] = useState(false); 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,9 +20,8 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email }),
       });
 
-      // We treat all 200 responses as success (security practice)
       if (res.ok) {
-        setIsSent(true); // 👈 Trigger the Success View
+        setIsSent(true); 
       } else {
         alert("Something went wrong. Please try again.");
       }
@@ -35,70 +34,91 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center">
+    <div className="min-h-[80vh] flex flex-col items-center justify-center bg-white px-6 py-20 font-sans">
+      
+      <div className="max-w-[440px] w-full">
         
-        {/* 👇 VIEW 1: SUCCESS MESSAGE (Shows after sending) */}
+        {/* 👇 VIEW 1: SUCCESS MESSAGE */}
         {isSent ? (
-          <div className="animate-in fade-in zoom-in duration-300">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600">
-                <CheckCircle size={32} />
+          <div className="text-center animate-in fade-in zoom-in duration-500">
+            <div className="w-20 h-20 bg-[#F5F9F2] rounded-full flex items-center justify-center mx-auto mb-8 text-[#4CAF50]">
+                <CheckCircle size={32} strokeWidth={1.5} />
             </div>
-            <h1 className="text-2xl font-serif text-[#1A1A1A] mb-4">Email Sent!</h1>
-            <p className="text-gray-500 mb-8 leading-relaxed">
-              We have sent a password reset link to <span className="font-bold text-gray-800">{email}</span>.
-              <br/>Please check your inbox (and spam folder).
+            
+            <span className="text-xs font-bold uppercase tracking-widest text-[#4CAF50] mb-3 block">Email Sent Successfully</span>
+            <h1 className="text-3xl md:text-4xl font-serif text-primary mb-4">Check Your Inbox</h1>
+            
+            <p className="text-gray-500 mb-10 text-sm leading-7">
+              We have sent a password reset link to <br/>
+              <span className="font-bold text-primary text-base">{email}</span>
             </p>
             
             <Link 
                 href="/login" 
-                className="inline-block w-full bg-[#1A1A1A] text-white py-3 rounded-md font-bold hover:bg-[#B87E58] transition-colors"
+                // 👇 CHANGED TO THEME COLOR
+                className="block w-full bg-primary text-white h-14 flex items-center justify-center text-xs font-bold uppercase tracking-[0.2em] hover:bg-secondary transition-all duration-300 shadow-lg shadow-primary/10"
             >
                 Return to Login
             </Link>
             
             <button 
                 onClick={() => setIsSent(false)}
-                className="mt-6 text-xs text-gray-400 hover:text-gray-600 hover:underline"
+                className="mt-8 text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-primary transition-colors"
             >
-                Click here to try a different email
+                Try a different email
             </button>
           </div>
         ) : (
           
-          /* 👇 VIEW 2: THE FORM (Default) */
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6 text-[#1A1A1A]">
-                <Mail size={28} />
+          /* 👇 VIEW 2: THE FORM */
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            
+            {/* Header */}
+            <div className="text-center mb-10">
+                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 text-primary">
+                    <Mail size={24} strokeWidth={1.5} />
+                </div>
+                <span className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 block">Account Recovery</span>
+                <h1 className="text-3xl md:text-4xl font-serif text-primary mb-4">Forgot Password?</h1>
+                <p className="text-sm text-gray-500 leading-relaxed max-w-xs mx-auto">
+                  Enter your email address and we'll send you a link to reset your password.
+                </p>
             </div>
-            <h1 className="text-2xl font-serif text-[#1A1A1A] mb-2">Forgot Password?</h1>
-            <p className="text-sm text-gray-500 mb-8">
-              No worries! Enter your email and we'll send you a reset instructions.
-            </p>
 
-            <form onSubmit={handleSubmit} className="space-y-6 text-left">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Email Address</label>
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-8">
+              <div className="group relative">
+                <label className="absolute -top-3 left-0 text-[10px] font-bold uppercase tracking-widest text-gray-400 group-focus-within:text-primary transition-colors bg-white pr-2">
+                    Email Address
+                </label>
                 <input 
-                  type="email" required
-                  className="w-full p-3 border border-gray-200 rounded-md focus:ring-2 focus:ring-[#B87E58] outline-none transition-all"
+                  type="email" 
+                  required
+                  className="w-full border-b border-gray-200 py-4 text-primary text-base outline-none focus:border-primary transition-all placeholder:text-gray-300 bg-transparent"
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
 
+              {/* 👇 CHANGED TO THEME COLOR */}
               <button 
-                type="submit" disabled={loading}
-                className="w-full bg-[#1A1A1A] text-white py-3 rounded-md font-bold hover:bg-[#B87E58] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                type="submit" 
+                disabled={loading}
+                className="w-full bg-primary text-white h-14 flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-secondary transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed shadow-xl shadow-primary/10"
               >
-                {loading ? <Loader2 className="animate-spin" size={20} /> : "Send Reset Link"}
+                {loading ? <Loader2 className="animate-spin" size={18} /> : "Send Reset Link"}
               </button>
             </form>
 
-            <div className="mt-8 pt-6 border-t border-gray-100">
-              <Link href="/login" className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-[#1A1A1A] transition-colors">
-                <ArrowLeft size={16} /> Back to Login
+            {/* Back Link */}
+            <div className="mt-10 text-center">
+              <Link 
+                href="/login" 
+                className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-primary transition-colors group"
+              >
+                <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> 
+                Back to Login
               </Link>
             </div>
           </div>
