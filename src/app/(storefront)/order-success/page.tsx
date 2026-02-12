@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -15,7 +15,8 @@ const client = createClient({
   useCdn: true,
 });
 
-export default function OrderSuccessPage() {
+// 1. Separate the logic into a sub-component
+function OrderContent() {
   const searchParams = useSearchParams();
   const orderNumber = searchParams.get("orderNumber");
 
@@ -95,15 +96,12 @@ export default function OrderSuccessPage() {
         }
       `}</style>
 
-      {/* 👇 RESPONSIVE PADDING FIXED:
-          Mobile: pt-28 pb-10 (Tighter)
-          Desktop: pt-48 pb-20 (Spacious)
-      */}
+      {/* Responsive Padding */}
       <div className="min-h-screen bg-white pt-28 pb-10 md:pt-48 md:pb-20 px-4 md:px-6 font-sans text-[#1A1A1A]">
         
         <div id="print-area" className="max-w-[1000px] mx-auto">
           
-          {/* Header Section: Reduced bottom margin on mobile */}
+          {/* Header Section */}
           <div className="text-center mb-10 md:mb-16 animate-in fade-in zoom-in duration-700">
               <div className="no-print inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-green-50 rounded-full mb-4 md:mb-6 border border-green-100 shadow-sm">
                   <Check size={32} className="text-green-700 md:w-10 md:h-10" strokeWidth={1.5} />
@@ -264,5 +262,19 @@ export default function OrderSuccessPage() {
         </div>
       </div>
     </>
+  );
+}
+
+// 2. Wrap the Page Component in Suspense to fix the build error
+export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={
+        <div className="h-screen flex flex-col items-center justify-center bg-white">
+          <Loader2 className="animate-spin text-primary mb-4" size={40} />
+          <p className="font-serif text-lg text-primary animate-pulse">Loading order details...</p>
+        </div>
+    }>
+        <OrderContent />
+    </Suspense>
   );
 }
