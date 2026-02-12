@@ -97,6 +97,30 @@ export default async function ShopPage(props: { searchParams: SearchParamsType }
     return `/shop?${params.toString()}`;
   };
 
+  const removeFilterUrl = (type: 'stock' | 'price' | 'category', value?: string) => {
+      const params = new URLSearchParams();
+
+      // Handle Category Removal (Specific Slug)
+      if (type === 'category' && value) {
+          const newCats = selectedCategories.filter(c => c !== value);
+          if (newCats.length > 0) params.set("category", newCats.join(','));
+      } else if (type !== 'category' && selectedCategories.length > 0) {
+          // Keep categories if removing something else
+          params.set("category", selectedCategories.join(','));
+      }
+
+      // Handle Stock/Price Removal
+      if (type !== 'stock' && stockParam) params.set("stock", stockParam);
+      if (type !== 'price' && priceParam) params.set("price", priceParam);
+      
+      // Keep Sort/Grid
+      if (sortParam) params.set("sort", sortParam);
+      if (gridParam) params.set("grid", gridParam);
+
+      params.delete("page");
+      return `/shop?${params.toString()}`;
+  };
+  
   const clearAllUrl = "/shop";
   const currentCategory = allCategories.find((c: any) => c.slug === selectedCategories[0]);
   const title = selectedCategories.length === 1 ? (currentCategory?.name || "Category") : "All Products";
@@ -152,10 +176,36 @@ export default async function ShopPage(props: { searchParams: SearchParamsType }
         <div className="hidden lg:flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-100 pb-6 mb-12 gap-6">
             <div className="flex flex-wrap items-center gap-2">
                 <span className="font-serif text-lg mr-4">Active Filters:</span>
+                {/* Categories */}
                 {selectedCategories.map(slug => (
-                    <span key={slug} className="bg-secondary text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">{allCategories.find((c: any) => c.slug === slug)?.name || slug} <X size={12} /></span>
+                    <Link 
+                        key={slug}
+                        href={removeFilterUrl('category', slug)}
+                        className="flex items-center gap-2 bg-[#8B9D83] text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-primary transition-colors"
+                    >
+                        {allCategories.find((c: any) => c.slug === slug)?.title || slug} <X size={12} />
+                    </Link>
                 ))}
-                {stockParam && <span className="bg-secondary text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">{stockParam.replace('_', ' ')} <X size={12} /></span>}
+
+                {/* Stock */}
+                {stockParam && (
+                    <Link 
+                        href={removeFilterUrl('stock')}
+                        className="flex items-center gap-2 bg-[#8B9D83] text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-primary transition-colors"
+                    >
+                        {stockParam.replace('_', ' ')} <X size={12} />
+                    </Link>
+                )}
+
+                {/* Price */}
+                {priceParam && (
+                    <Link 
+                        href={removeFilterUrl('price')}
+                        className="flex items-center gap-2 bg-[#8B9D83] text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-primary transition-colors"
+                    >
+                        {priceParam.replace('_', ' - ').replace('under', 'Under').replace('over', 'Over')} <X size={12} />
+                    </Link>
+                )}
                 {(selectedCategories.length > 0 || stockParam || priceParam) ? <Link href={clearAllUrl} className="text-[10px] font-bold uppercase underline text-gray-400 hover:text-red-500 ml-2">Clear All</Link> : <span className="text-sm text-gray-400 italic">None</span>}
             </div>
             <div className="flex items-center gap-6 ml-auto">

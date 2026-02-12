@@ -110,12 +110,12 @@ export default function Footer() {
             
             {/* Column 1 */}
             <div>
-                <h4 className="font-serif text-lg mb-6 text-white">Shop</h4>
+                <h4 className="font-serif text-lg mb-6 text-white">Pages</h4>
                 <ul className="space-y-4 text-sm font-light text-white/80">
-                    <li><FooterLink href="/shop">All Products</FooterLink></li>
-                    <li><FooterLink href="/shop?category=new">New Arrivals</FooterLink></li>
-                    <li><FooterLink href="/shop?category=bestsellers">Best Sellers</FooterLink></li>
-                    <li><FooterLink href="/wishlist">My Wishlist</FooterLink></li>
+                    <li><FooterLink href="/">Home</FooterLink></li>
+                    <li><FooterLink href="/shop">Shop</FooterLink></li>
+                    <li><FooterLink href="/about">About us</FooterLink></li>
+                    <li><FooterLink href="/contact">Contact</FooterLink></li>
                 </ul>
             </div>
 
@@ -123,10 +123,10 @@ export default function Footer() {
             <div>
                 <h4 className="font-serif text-lg mb-6 text-white">Collections</h4>
                 <ul className="space-y-4 text-sm font-light text-white/80">
-                    <li><FooterLink href="/shop/necklaces">Necklaces</FooterLink></li>
-                    <li><FooterLink href="/shop/earrings">Earrings</FooterLink></li>
-                    <li><FooterLink href="/shop/rings">Rings</FooterLink></li>
-                    <li><FooterLink href="/shop/bracelets">Bracelets</FooterLink></li>
+                    <li><FooterLink href="/shop?category=necklaces">Necklaces</FooterLink></li>
+                    <li><FooterLink href="/shop?category=earrings">Earrings</FooterLink></li>
+                    <li><FooterLink href="/shop?category=rings">Rings</FooterLink></li>
+                    <li><FooterLink href="/shop?category=bracelets">Bracelets</FooterLink></li>
                 </ul>
             </div>
 
@@ -135,7 +135,7 @@ export default function Footer() {
                 <h4 className="font-serif text-lg mb-6 text-white">Support</h4>
                 <ul className="space-y-4 text-sm font-light text-white/80">
                     <li><FooterLink href="/account">My Account</FooterLink></li>
-                    <li><FooterLink href="/account/orders">Track Order</FooterLink></li>
+                    <li><FooterLink href="/track-order">Track Order</FooterLink></li>
                     <li><FooterLink href="/shipping">Shipping & Returns</FooterLink></li>
                     <li><FooterLink href="/faq">FAQs</FooterLink></li>
                 </ul>
@@ -182,7 +182,7 @@ function SocialLink({ href, icon }: { href: string, icon: React.ReactNode }) {
     return (
         <a 
             href={href} 
-            className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white hover:text-primary transition-all duration-300"
+            className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center transition-all duration-300"
         >
             {icon}
         </a>

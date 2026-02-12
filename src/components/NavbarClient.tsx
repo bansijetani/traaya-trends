@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image"; 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation"; 
-import { Search, User, ShoppingBag, Menu, X, Heart, ChevronRight, ChevronDown, MapPin, Mail, Phone } from "lucide-react";
+import { Search, User, ShoppingBag, Menu, X, Heart, ChevronRight, ChevronDown, Globe } from "lucide-react";
 import { useCart } from "@/context/CartContext"; 
 import { urlFor } from "@/sanity/lib/image"; 
 import SearchModal from "@/components/SearchModal";
@@ -222,6 +222,7 @@ export default function NavbarClient({ data }: NavbarClientProps) {
                     </Link>
                 </div>
                 {/* ...Rest of footer... */}
+                <CurrencyLanguageSwitcher mode="light" position="top" />
             </div>
         </div>
       </nav>
