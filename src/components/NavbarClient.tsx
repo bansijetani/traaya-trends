@@ -77,8 +77,7 @@ export default function NavbarClient({ data }: NavbarClientProps) {
                 Complimentary Shipping on Orders Above $200
               </div>
               <div className="flex items-center gap-6 text-[10px] font-bold uppercase tracking-widest text-white">
-                 <Link href="/login" className="hover:text-gray-200 transition-colors">Sign In</Link>
-                 <Link href="/register" className="hover:text-gray-200 transition-colors">Sign Up</Link>
+                 <Link href="/login" className="hover:text-gray-200 transition-colors">Sign In/Up</Link>
               </div>
             </div>
           </div>
