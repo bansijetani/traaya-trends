@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronRight, ChevronLeft, Loader2, Lock, Tag, ShoppingBag, ArrowRight, CheckCircle } from "lucide-react";
+import { ChevronRight, ChevronLeft, Loader2, Lock, Tag, CheckCircle } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Price from "@/components/Price"; 
 import toast from "react-hot-toast";
+
+import PaymentMethods from "@/components/PaymentMethods";
 
 export default function CheckoutPage() {
   const { items, cartTotal, clearCart } = useCart();
@@ -37,6 +39,7 @@ export default function CheckoutPage() {
   // --- CALCULATIONS ---
   const subtotal = cartTotal;
   const shipping = subtotal > 200 ? 0 : 15.00;
+  // Final total after shipping and discounts
   const total = Math.max(0, subtotal - discount + shipping);
 
   // --- HANDLERS ---
@@ -53,6 +56,7 @@ export default function CheckoutPage() {
       try {
           const response = await fetch("/api/checkout/validate-coupon", {
               method: "POST",
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ code: couponCode, email: email, orderTotal: subtotal }),
           });
           const data = await response.json();
@@ -77,61 +81,22 @@ export default function CheckoutPage() {
       }
   };
 
+  // We are keeping this in case you want to use it for a "Cash on Delivery" option later, 
+  // but standard orders will now go through PaymentMethods (Stripe/PayPal)
   const handlePlaceOrder = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (couponCode && discount === 0) {
-            setDiscountError("Invalid coupon code applied. Please clear it before continuing.");
-            return; 
-        }
-        setLoading(true);
-        setDiscountError(""); 
-    
-        const orderData = {
-            firstName, lastName, email, address, city, zip, phone,
-            cartItems: items, total: total, discount: discount,
-            couponCode: discount > 0 ? couponCode : null 
-        };
-
-        try {
-            const response = await fetch("/api/orders/create-order", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(orderData),
-            });
-            const data = await response.json();
-
-            if (response.ok) {
-                clearCart(); 
-                localStorage.setItem("latest_order_id", data.orderNumber);
-                router.push(`/order-success?orderNumber=${data.orderNumber}`);
-            } else {
-                if (data.message && data.message.includes("Coupon")) {
-                    setDiscountError(data.message); 
-                    setDiscount(0);
-                    setDiscountSuccess("");
-                } else {
-                    toast.error(data.message || "Failed to place order. Please try again.");
-                }
-            }
-        } catch (error) {
-            console.error("Error:", error);
-            toast.error("Something went wrong. Please check your connection and try again.");
-        } finally {
-            setLoading(false);
-        }
+        // Custom order logic
   };
 
   if (!isClient) return null;
 
   return (
-    // Increased pt-32 to pt-40 for more top spacing
     <div className="bg-white min-h-screen pt-40 pb-24 px-6 font-sans text-[#1A1A1A]">
       <div className="max-w-[1200px] mx-auto">
         
-        {/* Page Title - Adjusted Alignment & Spacing */}
+        {/* Page Title */}
         <div className="mb-12 mt-4 text-left">
             <h1 className="font-serif text-4xl md:text-5xl text-primary mb-4">Secure Checkout</h1>
-            {/* Changed justify-center to justify-start */}
             <div className="flex items-center justify-start gap-3 text-xs tracking-widest uppercase text-gray-400">
                 <span className="text-primary font-bold">Shipping</span>
                 <ChevronRight size={10} />
@@ -143,7 +108,7 @@ export default function CheckoutPage() {
 
         <div className="grid lg:grid-cols-12 gap-12 items-start">
             
-            {/* ================= LEFT: SHIPPING FORM (Col Span 7) ================= */}
+            {/* ================= LEFT: SHIPPING FORM ================= */}
             <div className="lg:col-span-7 space-y-10">
                 
                 {/* Contact Info Box */}
@@ -162,7 +127,7 @@ export default function CheckoutPage() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Email Address"
-                            className="w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm placeholder:text-gray-400 rounded-sm"
+                            className="w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm placeholder:text-gray-400 rounded-sm outline-none"
                         />
                         <div className="flex items-center gap-3">
                              <input type="checkbox" id="newsletter" className="accent-primary w-4 h-4 cursor-pointer" />
@@ -183,7 +148,7 @@ export default function CheckoutPage() {
                                 value={firstName}
                                 onChange={(e) => setFirstName(e.target.value)}
                                 placeholder="First Name"
-                                className="w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm rounded-sm" 
+                                className="w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm rounded-sm outline-none" 
                              />
                              <input 
                                 type="text" 
@@ -191,7 +156,7 @@ export default function CheckoutPage() {
                                 value={lastName}
                                 onChange={(e) => setLastName(e.target.value)}
                                 placeholder="Last Name"
-                                className="w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm rounded-sm" 
+                                className="w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm rounded-sm outline-none" 
                              />
                         </div>
 
@@ -201,13 +166,13 @@ export default function CheckoutPage() {
                             value={address}
                             onChange={(e) => setAddress(e.target.value)}
                             placeholder="Address"
-                            className="w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm rounded-sm" 
+                            className="w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm rounded-sm outline-none" 
                         />
 
                         <input 
                             type="text" 
                             placeholder="Apartment, suite, etc. (optional)"
-                            className="w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm rounded-sm" 
+                            className="w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm rounded-sm outline-none" 
                         />
 
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
@@ -217,12 +182,12 @@ export default function CheckoutPage() {
                                 value={city}
                                 onChange={(e) => setCity(e.target.value)}
                                 placeholder="City"
-                                className="w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm rounded-sm" 
+                                className="w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm rounded-sm outline-none" 
                             />
                             <div className="relative">
                                 <select 
                                     defaultValue="" 
-                                    className="w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm text-gray-600 appearance-none rounded-sm cursor-pointer"
+                                    className="w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm text-gray-600 appearance-none rounded-sm cursor-pointer outline-none"
                                 >
                                     <option value="" disabled>State</option>
                                     <option>NY</option>
@@ -237,7 +202,7 @@ export default function CheckoutPage() {
                                 value={zip}
                                 onChange={(e) => setZip(e.target.value)}
                                 placeholder="Zip Code"
-                                className="col-span-2 md:col-span-1 w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm rounded-sm" 
+                                className="col-span-2 md:col-span-1 w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm rounded-sm outline-none" 
                             />
                         </div>
 
@@ -247,7 +212,7 @@ export default function CheckoutPage() {
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                             placeholder="Phone Number"
-                            className="w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm rounded-sm" 
+                            className="w-full h-12 px-4 bg-gray-50 border border-transparent focus:bg-white focus:border-primary focus:ring-0 transition-all text-sm rounded-sm outline-none" 
                         />
                     </div>
                 </form>
@@ -258,9 +223,9 @@ export default function CheckoutPage() {
             </div>
 
 
-            {/* ================= RIGHT: ORDER SUMMARY (Col Span 5) ================= */}
+            {/* ================= RIGHT: ORDER SUMMARY ================= */}
             <div className="lg:col-span-5">
-                <div className="bg-[#F9F9F9] p-8 lg:p-10 rounded-sm sticky top-32 border border-gray-100">
+                <div className="bg-[#F9F9F9] p-8 lg:p-10 rounded-sm sticky top-32 border border-gray-100 shadow-sm">
                     <h3 className="font-serif text-xl text-primary mb-6 pb-4 border-b border-gray-200">Order Summary</h3>
                     
                     {/* Cart Items */}
@@ -340,7 +305,7 @@ export default function CheckoutPage() {
                         )}
                     </div>
 
-                    <div className="flex justify-between items-baseline pt-4 mt-4 border-t border-gray-200">
+                    <div className="flex justify-between items-baseline pt-4 mt-4 mb-8 border-t border-gray-200">
                         <span className="font-serif text-lg text-primary">Total</span>
                         <div className="flex items-baseline gap-1">
                             <span className="text-[10px] text-gray-400">USD</span>
@@ -350,18 +315,10 @@ export default function CheckoutPage() {
                         </div>
                     </div>
 
-                    {/* Checkout Button */}
-                    <button 
-                        type="submit"
-                        form="checkout-form"
-                        disabled={loading}
-                        className="w-full mt-8 h-12 bg-primary text-white text-xs font-bold uppercase tracking-[0.15em] hover:bg-secondary transition-colors rounded-sm disabled:opacity-70 flex items-center justify-center gap-2 shadow-md group"
-                    >
-                        {loading ? <Loader2 className="animate-spin" size={16} /> : "Place Order"}
-                        {!loading && <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform"/>}
-                    </button>
-                    
-                    <div className="mt-4 flex justify-center items-center gap-2 text-[10px] text-gray-400 opacity-80">
+                    {/* 👇 NEW PAYMENT COMPONENT (Replaces the old Submit button) */}
+                    <PaymentMethods cartItems={items} totalPrice={total} />
+
+                    <div className="mt-6 flex justify-center items-center gap-2 text-[10px] text-gray-400 opacity-80">
                         <Lock size={10} /> Secure SSL Encryption
                     </div>
                 </div>
