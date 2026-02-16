@@ -15,6 +15,7 @@ import AddToCartButton from "@/components/AddToCartButton";
 import Price from "@/components/Price";
 import Image from "next/image";
 import toast from "react-hot-toast";
+import dynamic from "next/dynamic";
 
 // --- TYPES ---
 interface Review {
@@ -39,6 +40,10 @@ interface SanityProduct {
   slug: { current: string } | string;
 }
 
+const ImageLightbox = dynamic(() => import("@/components/ImageLightbox"), {
+  ssr: false, // We don't need to render interactive modals on the server
+});
+
 export default function ProductPage() {
   const params = useParams();
   const slug = typeof params.slug === 'string' ? params.slug : '';
@@ -62,8 +67,6 @@ export default function ProductPage() {
   const [selectedMaterial, setSelectedMaterial] = useState("Gold");
 
   const { addToCart } = useCart();
-
-  // --- FETCH DATA ---
   // --- FETCH DATA ---
   useEffect(() => {
     const fetchData = async () => {
@@ -134,7 +137,8 @@ export default function ProductPage() {
   };
 
   const getImageUrl = (image: any) => {
-    return image ? urlFor(image).url() : "/images/placeholder.jpg";
+    // 👇 Adds automatic resizing and next-gen WebP compression!
+    return image ? urlFor(image).width(800).format('webp').url() : "/images/placeholder.jpg";
   };
 
   // --- STOCK LOGIC ---
@@ -172,7 +176,37 @@ export default function ProductPage() {
   if (!product) return <div className="h-screen flex items-center justify-center">Product Not Found</div>;
 
   return (
+    
     <main className="bg-white text-[#1A1A1A]">
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org/",
+            "@type": "Product",
+            name: product.name,
+            image: product.images && product.images.length > 0 ? getImageUrl(product.images[0]) : "",
+            description: product.description || product.shortDesc,
+            sku: typeof product.slug === 'string' ? product.slug : product.slug?.current,
+            offers: {
+              "@type": "Offer",
+              url: `https://traaya-trends.vercel.app/product/${slug}`,
+              priceCurrency: "USD",
+              price: product.price,
+              availability: product.stockLevel > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            },
+            // Automatically adds your 5-star reviews to Google Search!
+            ...(reviews.length > 0 && {
+              aggregateRating: {
+                "@type": "AggregateRating",
+                ratingValue: averageRating,
+                reviewCount: reviews.length,
+              }
+            })
+          }),
+        }}
+      />
 
       {/* --- PRODUCT HEADER --- */}
       <div className="pt-32 md:pt-40 pb-16 md:pb-24 px-6 font-sans">
@@ -427,16 +461,14 @@ export default function ProductPage() {
 
       </div>
       
-      {/* Lightbox */}
+      {/* Lightbox - Now 100% Lazy Loaded! */}
       {isModalOpen && product?.images && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-md cursor-zoom-out" onClick={() => setIsModalOpen(false)}>
-          <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 text-white/70 p-2 hover:text-white transition-colors"><X size={32}/></button>
-          <button onClick={prevImage} className="absolute left-4 text-white/50 p-4 hover:text-white transition-colors"><ChevronLeft size={48}/></button>
-          <div className="relative max-w-[90vw] max-h-[90vh] cursor-default" onClick={(e) => e.stopPropagation()}>
-              <Image src={getImageUrl(product.images[currentImageIndex])} alt="Zoom" width={1200} height={1200} className="max-w-full max-h-[90vh] object-contain" />
-          </div>
-          <button onClick={nextImage} className="absolute right-4 text-white/50 p-4 hover:text-white transition-colors"><ChevronRight size={48}/></button>
-        </div>
+        <ImageLightbox 
+           imageUrl={getImageUrl(product.images[currentImageIndex])}
+           onClose={() => setIsModalOpen(false)}
+           onNext={nextImage}
+           onPrev={prevImage}
+        />
       )}
     </main>
   );

@@ -1,28 +1,92 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState, Suspense, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "next-sanity";
 import { Check, Printer, ArrowRight, Loader2, ShoppingBag, MapPin, Calendar, Mail } from "lucide-react";
 import Price from "@/components/Price";
+import { useCart } from "@/context/CartContext"; // Add Cart Context to clear the cart
 
 const client = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
   apiVersion: "2023-01-01",
-  useCdn: true,
+  useCdn: false, // Set to false to ensure we get the freshest data immediately after creation
 });
 
-// 1. Separate the logic into a sub-component
 function OrderContent() {
   const searchParams = useSearchParams();
-  const orderNumber = searchParams.get("orderNumber");
+  const router = useRouter();
+  const { clearCart } = useCart();
 
+  // We check for either an existing orderNumber OR a session_id from Stripe/PayPal
+  const urlOrderNumber = searchParams.get("orderNumber");
+  const sessionId = searchParams.get("session_id");
+
+  const [orderNumber, setOrderNumber] = useState<string | null>(urlOrderNumber);
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [creatingOrder, setCreatingOrder] = useState(false);
 
+  const orderAttempted = useRef(false);
+
+  // 1. CREATE THE ORDER (If returning from Stripe/PayPal)
+  // 1. CREATE THE ORDER (If returning from Stripe/PayPal)
+  useEffect(() => {
+    const handlePendingOrder = async () => {
+      if (orderNumber) return;
+
+      if (sessionId) {
+        // Read the data from local storage
+        const pendingOrderData = window.localStorage.getItem("pending_order");
+
+        // 👇 THE FIX: If there is no data, stop immediately.
+        // This stops the duplicate React render in its tracks.
+        if (!pendingOrderData) {
+          // If there is no pending order data but we are still loading,
+          // it means the other render successfully took over.
+          return; 
+        }
+
+        // 👇 THE LOCK: Synchronously delete the data RIGHT NOW.
+        // This guarantees the second render will find 'null' above and stop.
+        window.localStorage.removeItem("pending_order");
+        
+        setCreatingOrder(true);
+        
+        try {
+          const parsedOrder = JSON.parse(pendingOrderData);
+          const response = await fetch("/api/orders/create-order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(parsedOrder),
+          });
+
+          const data = await response.json();
+
+          if (data.orderNumber) {
+            setOrderNumber(data.orderNumber); 
+            clearCart(); 
+            router.replace(`/order-success?orderNumber=${data.orderNumber}`);
+          }
+        } catch (error) {
+          console.error("Error creating order:", error);
+          // If the API completely crashed, put the data back so the user doesn't lose it
+          window.localStorage.setItem("pending_order", pendingOrderData);
+        } finally {
+          setCreatingOrder(false);
+        }
+      } else {
+         setLoading(false); 
+      }
+    };
+
+    handlePendingOrder();
+  }, [sessionId, orderNumber, router, clearCart]);
+
+  // 2. FETCH THE ORDER DETAILS
   useEffect(() => {
     if (!orderNumber) return;
 
@@ -57,11 +121,15 @@ function OrderContent() {
     fetchOrder();
   }, [orderNumber]);
 
-  if (loading) {
+  // --- UI RENDERING ---
+  
+  if (loading || creatingOrder) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-white">
         <Loader2 className="animate-spin text-primary mb-4" size={40} />
-        <p className="font-serif text-lg text-primary animate-pulse">Retrieving your order...</p>
+        <p className="font-serif text-lg text-primary animate-pulse">
+            {creatingOrder ? "Finalizing your order..." : "Retrieving your receipt..."}
+        </p>
       </div>
     );
   }
@@ -98,7 +166,6 @@ function OrderContent() {
 
       {/* Responsive Padding */}
       <div className="min-h-screen bg-white pt-28 pb-10 md:pt-48 md:pb-20 px-4 md:px-6 font-sans text-[#1A1A1A]">
-        
         <div id="print-area" className="max-w-[1000px] mx-auto">
           
           {/* Header Section */}
@@ -265,7 +332,6 @@ function OrderContent() {
   );
 }
 
-// 2. Wrap the Page Component in Suspense to fix the build error
 export default function OrderSuccessPage() {
   return (
     <Suspense fallback={

@@ -35,6 +35,7 @@ export default function CheckoutPage() {
   // --- HYDRATION FIX ---
   const [isClient, setIsClient] = useState(false);
   useEffect(() => setIsClient(true), []);
+  
 
   // --- CALCULATIONS ---
   const subtotal = cartTotal;
@@ -42,6 +43,24 @@ export default function CheckoutPage() {
   // Final total after shipping and discounts
   const total = Math.max(0, subtotal - discount + shipping);
 
+  useEffect(() => {
+    const pendingOrder = {
+        firstName, lastName, email, address, city, zip, phone,
+        cartItems: items, total: total, discount: discount,
+        couponCode: discount > 0 ? couponCode : null 
+    };
+    localStorage.setItem("pending_order", JSON.stringify(pendingOrder));
+  }, [firstName, lastName, email, address, city, zip, phone, items, total, discount, couponCode]);
+
+  const isFormValid = Boolean(
+    email.trim() && 
+    firstName.trim() && 
+    lastName.trim() && 
+    address.trim() && 
+    city.trim() && 
+    zip.trim() && 
+    phone.trim()
+  );
   // --- HANDLERS ---
   const handleApplyCoupon = async () => {
       if(!couponCode) return;
@@ -316,7 +335,7 @@ export default function CheckoutPage() {
                     </div>
 
                     {/* 👇 NEW PAYMENT COMPONENT (Replaces the old Submit button) */}
-                    <PaymentMethods cartItems={items} totalPrice={total} />
+                    <PaymentMethods cartItems={items} totalPrice={total} isFormValid={isFormValid} />
 
                     <div className="mt-6 flex justify-center items-center gap-2 text-[10px] text-gray-400 opacity-80">
                         <Lock size={10} /> Secure SSL Encryption
