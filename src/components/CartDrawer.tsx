@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Minus, Plus, ShoppingBag, Truck, Gift, FileText, ArrowRight } from "lucide-react";
+import { X, Minus, Plus, ShoppingBag, Truck, Gift, FileText, ArrowRight, TrashIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
@@ -106,15 +106,31 @@ export default function CartDrawer() {
             ) : (
                 // 👇 FIXED: Uses (item, index) and key={item._id || index}
                 items.map((item, index) => (
-                    <div key={item._id || index} className="flex gap-4 group animate-in fade-in slide-in-from-right-4 duration-500">
+                    <div key={item.cartItemId || index} className="flex gap-4 group animate-in fade-in slide-in-from-right-4 duration-500">
                         <Link href={`/product/${item.slug}`} className="relative w-20 h-24 bg-[#F9F9F9] flex-shrink-0 overflow-hidden rounded-sm">
-                            {item.image && <Image src={item.image} alt={item.name} fill className="object-cover transition-transform duration-500 group-hover:scale-110" />}
+                            {item.image && typeof item.image === 'string' && item.image.trim() !== "" ? (
+                                <Image 
+                                    src={item.image} 
+                                    alt={item.name || "Product"} 
+                                    fill 
+                                    className="object-cover transition-transform group-hover:scale-105" 
+                                />
+                            ) : (
+                                <div className="w-full h-full bg-gray-50 flex items-center justify-center text-[10px] text-gray-300">
+                                    No Image
+                                </div>
+                            )}
                         </Link>
 
                         <div className="flex-1 flex flex-col justify-between py-0.5">
                             <div>
                                 <Link href={`/product/${item.slug}`} onClick={closeCart}>
                                     <h3 className="font-serif text-sm text-primary hover:text-secondary transition-colors line-clamp-2 leading-tight">{item.name}</h3>
+                                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">
+                                    {[item.selectedSize, item.selectedMaterial, item.selectedColor]
+                                        .filter(Boolean)
+                                        .join(" / ")}
+                                    </p>
                                 </Link>
                                 <div className="text-xs font-bold text-gray-500 mt-1 flex items-center gap-2">
                                      <Price amount={item.price} className="text-primary" />
@@ -125,7 +141,7 @@ export default function CartDrawer() {
                                 <div className="flex items-center border border-gray-200 h-7 rounded-sm">
                                     <button 
                                         // 👇 FIXED: Uses _id
-                                        onClick={() => updateQuantity(item._id, item.quantity - 1)} 
+                                        onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)} 
                                         className="w-7 h-full flex items-center justify-center hover:bg-gray-50 text-gray-500 transition-colors disabled:opacity-30"
                                         disabled={item.quantity <= 1}
                                     >
@@ -134,18 +150,14 @@ export default function CartDrawer() {
                                     <span className="w-8 text-center text-xs font-bold text-primary">{item.quantity}</span>
                                     <button 
                                         // 👇 FIXED: Uses _id
-                                        onClick={() => updateQuantity(item._id, item.quantity + 1)} 
+                                        onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)} 
                                         className="w-7 h-full flex items-center justify-center hover:bg-gray-50 text-gray-500 transition-colors"
                                     >
                                         <Plus size={10} />
                                     </button>
                                 </div>
-                                <button 
-                                    // 👇 FIXED: Uses _id
-                                    onClick={() => removeFromCart(item._id)} 
-                                    className="text-[10px] font-bold uppercase text-gray-400 border-b border-transparent hover:text-red-500 hover:border-red-500 transition-colors"
-                                >
-                                    Remove
+                                <button onClick={() => removeFromCart(item.cartItemId)}>
+                                    <TrashIcon size={14} />
                                 </button>
                             </div>
                         </div>

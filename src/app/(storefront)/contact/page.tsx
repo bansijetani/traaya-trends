@@ -56,14 +56,13 @@ export default function ContactPage() {
       {/* --- HERO SECTION --- */}
       <section className="pt-32 pb-16 md:pt-48 md:pb-24 px-6 text-center max-w-4xl mx-auto">
         <span className="text-secondary font-bold tracking-widest uppercase text-xs mb-4 block">
-            Customer Care
+            GET IN TOUCH
         </span>
         <h1 className="font-serif text-4xl md:text-6xl text-primary mb-6 leading-tight">
-            We're Here to Help
+            Let's Connect
         </h1>
         <p className="text-gray-500 text-lg leading-relaxed max-w-2xl mx-auto">
-            Have a question about a piece, your order, or bespoke services? 
-            Our dedicated team is ready to assist you on your journey.
+            Whether you need help tracking an order, want styling advice for your new everyday pieces, or just want to say hello, we would love to hear from you.
         </p>
       </section>
 
@@ -81,14 +80,15 @@ export default function ContactPage() {
                         <MapPin size={24} strokeWidth={1.5} />
                     </div>
                     <div>
-                        <h3 className="font-serif text-xl text-primary mb-2">Visit Our Boutique</h3>
+                        <h3 className="font-serif text-xl text-primary mb-2">Our Studio</h3>
                         <p className="text-gray-500 leading-relaxed text-sm">
                             123 Yarran St, Punchbowl <br />
                             NSW 2196, Australia
                         </p>
-                        <a href="#" className="text-xs font-bold uppercase tracking-widest text-secondary mt-3 inline-block hover:text-primary transition-colors border-b border-secondary/30 pb-0.5">
+                        { /* <a href="#" className="text-xs font-bold uppercase tracking-widest text-secondary mt-3 inline-block hover:text-primary transition-colors border-b border-secondary/30 pb-0.5">
                             Get Directions
                         </a>
+                        */ }
                     </div>
                 </div>
 
@@ -99,10 +99,10 @@ export default function ContactPage() {
                     <div>
                         <h3 className="font-serif text-xl text-primary mb-2">Email Us</h3>
                         <p className="text-gray-500 leading-relaxed text-sm mb-1">
-                            For general inquiries and orders:
+                            For order support, sizing help, or styling questions:
                         </p>
                         <a href="mailto:clientcare@vemus.com" className="text-primary font-medium hover:text-secondary transition-colors">
-                            clientcare@traaya.com
+                            support@traayatrends.com
                         </a>
                     </div>
                 </div>
@@ -123,12 +123,21 @@ export default function ContactPage() {
                 </div>
              </div>
 
-             {/* Store Image / Map Placeholder */}
-             <div className="relative aspect-video w-full bg-gray-100 rounded-sm overflow-hidden">
-                 <div className="absolute inset-0 bg-gray-200 flex items-center justify-center text-gray-400">
-                    <span className="font-serif italic text-xl">Map or Store Image</span>
-                 </div>
-             </div>
+             {/* Interactive Map Container */}
+                <div className="relative w-full h-[300px] md:h-[400px] bg-gray-100 rounded-sm overflow-hidden mt-8">
+                    <iframe
+                    title="Traaya Trends Studio Location"
+                    /* We encode spaces as %20 in the address below */
+                    src="https://maps.google.com/maps?q=123%20Yarran%20St,%20Punchbowl,%20NSW%202196,%20Australia&t=&z=14&ie=UTF8&iwloc=&output=embed"
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen={false}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    className="grayscale-[0.3] contrast-100 hover:grayscale-0 transition-all duration-700 ease-in-out"
+                    />
+                </div>
 
           </div>
 
@@ -155,7 +164,7 @@ export default function ContactPage() {
                // FORM STATE VIEW
                <>
                  <h3 className="font-serif text-2xl text-primary mb-2">Send a Message</h3>
-                 <p className="text-gray-500 text-sm mb-8">We usually respond within 24 hours.</p>
+                 <p className="text-gray-500 text-sm mb-8">Drop us a note below. One of our team members will get back to you within 24 hours.</p>
                  
                  <form className="space-y-6" onSubmit={handleSubmit}>
                     <div className="grid md:grid-cols-2 gap-6">
@@ -243,21 +252,21 @@ export default function ContactPage() {
             
             <div className="grid md:grid-cols-3 gap-8 text-left max-w-5xl mx-auto">
                 <div className="space-y-3 p-6 border border-gray-100 hover:border-gray-200 transition-colors">
-                    <h4 className="font-bold text-primary">Do you ship internationally?</h4>
+                    <h4 className="font-bold text-primary">What are your shipping options?</h4>
                     <p className="text-sm text-gray-500 leading-relaxed">
-                        Yes, we ship to over 50 countries worldwide. International shipping is complimentary on orders over $500.
+                        We ship worldwide! Domestic orders typically arrive within 3-5 business days, while international delivery takes 7-14 days. Plus, we offer complimentary standard shipping on all orders over $200.
                     </p>
                 </div>
                 <div className="space-y-3 p-6 border border-gray-100 hover:border-gray-200 transition-colors">
                     <h4 className="font-bold text-primary">What is your return policy?</h4>
                     <p className="text-sm text-gray-500 leading-relaxed">
-                        We offer a 30-day return policy for all unworn items in their original packaging. Custom pieces are final sale.
+                        We want you to absolutely love your everyday pieces. We happily accept returns or exchanges within 14 days of delivery, provided the jewelry is unworn and in its original packaging.
                     </p>
                 </div>
                 <div className="space-y-3 p-6 border border-gray-100 hover:border-gray-200 transition-colors">
-                    <h4 className="font-bold text-primary">How do I care for my jewelry?</h4>
+                    <h4 className="font-bold text-primary">How do I care for my plated jewelry?</h4>
                     <p className="text-sm text-gray-500 leading-relaxed">
-                        We recommend cleaning with a soft cloth and avoiding contact with harsh chemicals or perfumes to maintain shine.
+                        To keep your pieces looking radiant, avoid prolonged contact with water, perfumes, and harsh lotions. Gently wipe them with a soft microfiber cloth after wearing and store them in your Traaya pouch.
                     </p>
                 </div>
             </div>

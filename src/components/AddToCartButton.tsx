@@ -13,27 +13,42 @@ interface AddToCartButtonProps {
 export default function AddToCartButton({ product, styleType = "full", stock = 10 }: AddToCartButtonProps) {
   const { addToCart } = useCart();
 
-  // Check for Out of Stock
   const isOutOfStock = stock === 0;
 
   const handleAddToCart = (e: React.MouseEvent) => {
-    // Stop click from bubbling up to parent Link (if inside a product card)
     e.preventDefault(); 
     e.stopPropagation();
 
     if (isOutOfStock) return;
 
+    // 👇 1. GENERATE UNIQUE ID based on product ID + chosen variations
+    const uniqueCartId = `${product._id}-${product.selectedSize || 'nosize'}-${product.selectedMaterial || 'nomaterial'}-${product.selectedColor || 'nocolor'}`;
+
+    // 👇 2. SEND FULL DATA TO CART
     addToCart({
-      // 👇 FIXED: Changed 'id' to '_id' to match CartContext
       _id: product._id,
       name: product.name,
       price: product.price,
-      image: product.image,
+      // Safely handles both string images and Sanity image arrays
+      image: product.image || (product.images && product.images[0]) || "", 
       quantity: 1,
-      slug: product.slug,
+      slug: typeof product.slug === 'string' ? product.slug : product.slug?.current,
+      selectedSize: product.selectedSize,
+      selectedMaterial: product.selectedMaterial,
+      selectedColor: product.selectedColor,
+      cartItemId: uniqueCartId, // Pass the magic key!
     });
     
-    toast.success("Added to Bag");
+    // 👇 3. DYNAMIC TOAST MESSAGE (e.g. "Added Molten Ring (50 / Gold) to Bag")
+    const variations = [product.selectedSize, product.selectedMaterial, product.selectedColor]
+      .filter(Boolean) 
+      .join(" / ");
+
+    const toastMessage = variations 
+      ? `Added ${product.name} (${variations}) to Bag` 
+      : `Added ${product.name} to Bag`;
+
+    toast.success(toastMessage);
   };
 
   // 1. OUT OF STOCK - FULL BUTTON

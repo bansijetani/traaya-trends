@@ -38,6 +38,9 @@ interface SanityProduct {
   category?: string;
   details?: string;
   slug: { current: string } | string;
+  sizes?: string[];      
+  materials?: string[];
+  colors?: string[];
 }
 
 const ImageLightbox = dynamic(() => import("@/components/ImageLightbox"), {
@@ -63,8 +66,9 @@ export default function ProductPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeSections, setActiveSections] = useState<string[]>(['description']);
-  const [selectedSize, setSelectedSize] = useState("50");
-  const [selectedMaterial, setSelectedMaterial] = useState("Gold");
+  const [selectedSize, setSelectedSize] = useState<string>("");
+  const [selectedMaterial, setSelectedMaterial] = useState<string>("");
+  const [selectedColor, setSelectedColor] = useState<string>("");
 
   const { addToCart } = useCart();
   // --- FETCH DATA ---
@@ -76,12 +80,17 @@ export default function ProductPage() {
         // 1. Fetch Product
         const productQuery = `*[_type == "product" && slug.current == "${slug}"][0]{
           _id, name, price, oldPrice, description, "shortDesc": description, 
-          "slug": slug.current, images, stockLevel, category, details
+          "slug": slug.current, images, stockLevel, category, details, sizes, materials, colors
         }`;
         const fetchedProduct = await client.fetch(productQuery);
         setProduct(fetchedProduct);
 
         if (fetchedProduct) {
+
+          if (fetchedProduct.sizes?.length > 0) setSelectedSize(fetchedProduct.sizes[0]);
+          if (fetchedProduct.materials?.length > 0) setSelectedMaterial(fetchedProduct.materials[0]);
+          if (fetchedProduct.colors?.length > 0) setSelectedColor(fetchedProduct.colors[0]);
+          
           // 2. Fetch Related
           const relatedQuery = `*[_type == "product" && _id != "${fetchedProduct._id}"][0...4]{
             _id, name, price, oldPrice, "slug": slug.current, "images": images, "stockLevel": stockLevel
@@ -276,26 +285,74 @@ export default function ProductPage() {
 
               {/* Selectors */}
               <div className="space-y-6 mb-8">
-                <div>
-                  <div className="flex justify-between mb-2"><span className="text-xs font-bold uppercase tracking-widest text-primary">Material</span><span className="text-xs text-gray-500">{selectedMaterial}</span></div>
-                  <div className="flex gap-3">
-                    {mockMaterials.map((mat) => (
-                      <button key={mat.name} onClick={() => setSelectedMaterial(mat.name)} className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all ${selectedMaterial === mat.name ? "ring-1 ring-offset-2 ring-primary border-primary" : "border-gray-200 hover:border-gray-300"}`} title={mat.name}>
-                        <span className="w-6 h-6 rounded-full shadow-inner" style={{ background: mat.color }} />
-                      </button>
-                    ))}
+                {/* MATERIAL SELECTOR */}
+                {product.materials && product.materials.length > 0 && (
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-xs font-bold uppercase tracking-widest text-primary">Material</span>
+                      <span className="text-xs text-gray-500">{selectedMaterial}</span>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {product.materials.map((mat) => (
+                        <button 
+                          key={mat} 
+                          onClick={() => setSelectedMaterial(mat)} 
+                          className={`px-4 h-10 flex items-center justify-center text-xs font-bold border transition-all ${
+                            selectedMaterial === mat ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200 hover:border-primary"
+                          }`}
+                        >
+                          {mat}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <div className="flex justify-between mb-2"><span className="text-xs font-bold uppercase tracking-widest text-primary">Size</span><Link href="#" className="text-[10px] underline text-gray-400 hover:text-primary">Size Guide</Link></div>
-                  <div className="flex gap-2 flex-wrap">
-                    {mockSizes.map((size) => (
-                      <button key={size} onClick={() => setSelectedSize(size)} className={`h-10 w-12 flex items-center justify-center text-xs font-bold border transition-all ${selectedSize === size ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200 hover:border-primary"}`}>
-                        {size}
-                      </button>
-                    ))}
+                )}
+
+                {/* SIZE SELECTOR */}
+                {product.sizes && product.sizes.length > 0 && (
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-xs font-bold uppercase tracking-widest text-primary">Size</span>
+                      <Link href="#" className="text-[10px] underline text-gray-400 hover:text-primary">Size Guide</Link>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {product.sizes.map((size) => (
+                        <button 
+                          key={size} 
+                          onClick={() => setSelectedSize(size)} 
+                          className={`h-10 px-4 min-w-[3rem] flex items-center justify-center text-xs font-bold border transition-all ${
+                            selectedSize === size ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200 hover:border-primary"
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* COLOR SELECTOR */}
+                {product.colors && product.colors.length > 0 && (
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-xs font-bold uppercase tracking-widest text-primary">Color</span>
+                      <span className="text-xs text-gray-500">{selectedColor}</span>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {product.colors.map((color) => (
+                        <button 
+                          key={color} 
+                          onClick={() => setSelectedColor(color)} 
+                          className={`px-4 h-10 flex items-center justify-center text-xs font-bold border transition-all ${
+                            selectedColor === color ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200 hover:border-primary"
+                          }`}
+                        >
+                          {color}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Actions */}
@@ -310,7 +367,7 @@ export default function ProductPage() {
                 </div>
                 <div className="flex-1 flex gap-3 h-12">
                     <div className="flex-1">
-                        <AddToCartButton product={{ ...product, slug: typeof product.slug === 'string' ? product.slug : product.slug.current }} stock={stockLevel} styleType="full" />
+                        <AddToCartButton product={{ ...product, slug: typeof product.slug === 'string' ? product.slug : product.slug.current, selectedSize, selectedMaterial, selectedColor }} stock={stockLevel} styleType="full" />
                     </div>
                     <div className="w-12 h-12 border border-gray-200 flex items-center justify-center hover:border-primary hover:text-primary transition-colors">
                         <WishlistButton productId={product._id} />

@@ -64,14 +64,47 @@ export default function Footer() {
             <div className="max-w-md">
                 <h2 className="font-serif text-3xl md:text-4xl mb-6 tracking-wide text-white">Traaya Trends</h2>
                 <p className="text-white/80 text-sm leading-relaxed mb-8 font-light">
-                    Elevating your everyday style with handcrafted luxury. 
-                    Join our world of timeless elegance and exclusive collections.
+                    Everyday elegance, thoughtfully crafted. Jewelry designed by friends, made to celebrate the bonds and moments that define your story.
                 </p>
                 <div className="flex gap-4">
-                    <SocialLink href="#" icon={<Instagram size={18} />} />
-                    <SocialLink href="#" icon={<Facebook size={18} />} />
-                    <SocialLink href="#" icon={<Twitter size={18} />} />
-                    <SocialLink href="#" icon={<Linkedin size={18} />} />
+                    {/* Instagram */}
+                    <a 
+                        href="https://instagram.com/traaya_trends" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        aria-label="Follow us on Instagram"
+                        className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-300"
+                    >
+                        <Instagram className="w-5 h-5 text-white" />
+                    </a>
+
+                    {/* Facebook */}
+                    <a 
+                        href="https://facebook.com/traayatrends" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        aria-label="Follow us on Facebook"
+                        className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-300"
+                    >
+                        <Facebook className="w-5 h-5 text-white" />
+                    </a>
+
+                    {/* Pinterest */}
+                    <a 
+                        href="https://pinterest.com/traayatrends" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        aria-label="Follow us on Pinterest"
+                        className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-300"
+                    >
+                        <svg 
+                            viewBox="0 0 24 24" 
+                            fill="currentColor" 
+                            className="w-5 h-5 text-white"
+                            >
+                            <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.401.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.951-7.252 4.182 0 7.436 2.983 7.436 6.953 0 4.156-2.618 7.502-6.255 7.502-1.222 0-2.373-.635-2.766-1.385l-.754 2.875c-.272 1.04-1.008 2.34-1.503 3.134 1.134.348 2.327.535 3.551.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.367 18.592 0 12.017 0z"/>
+                        </svg>
+                    </a>
                 </div>
             </div>
 
@@ -151,7 +184,7 @@ export default function Footer() {
                     </li>
                     <li className="flex gap-3 items-center">
                         <Mail size={16} className="shrink-0 text-white/60" />
-                        <a href="mailto:care@traaya.com" className="hover:text-white transition-colors">care@traaya.com</a>
+                        <a href="mailto:support@traayatrends.com" className="hover:text-white transition-colors">support@traayatrends.com</a>
                     </li>
                     <li className="flex gap-3 items-center">
                         <Phone size={16} className="shrink-0 text-white/60" />

@@ -6,38 +6,54 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16" as any, // Use the latest stable API version
 });
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    const { items } = body; // The items coming from your shopping cart
+    const { items, email } = await req.json();
 
-    // Format your cart items for Stripe
-    const lineItems = items.map((item: any) => ({
-      price_data: {
-        currency: "usd", // Change this to 'inr' or 'eur' if needed
-        product_data: {
-          name: item.name,
-          images: [item.imageUrl], // Optional: Shows the product image on checkout
+    const line_items = items.map((item: any) => {
+      // 👇 1. Create a clear string of the variations
+      const variantDetails = [item.selectedSize, item.selectedMaterial, item.selectedColor]
+        .filter(Boolean)
+        .join(" / ");
+
+      return {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: item.name,
+            // 👇 2. Append the variations to the name so it appears on the invoice
+            description: variantDetails ? `Variant: ${variantDetails}` : "Standard",
+            images: [item.image],
+            // 👇 3. Metadata for your internal Stripe dashboard
+            metadata: {
+              size: item.selectedSize || "N/A",
+              material: item.selectedMaterial || "N/A",
+              color: item.selectedColor || "N/A",
+            },
+          },
+          unit_amount: Math.round(item.price * 100),
         },
-        // Stripe expects amounts in the smallest currency unit (e.g., cents)
-        unit_amount: Math.round(item.price * 100), 
-      },
-      quantity: item.quantity || 1,
-    }));
+        quantity: item.quantity,
+      };
+    });
 
-    // Create the Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
-      line_items: lineItems,
+      line_items,
       mode: "payment",
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/order-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/cart`,
+      customer_email: email,
+      // 👇 4. Global Metadata for the entire order
+      metadata: {
+        order_details: items.map((i: any) => 
+          `${i.name} (${[i.selectedSize, i.selectedMaterial, i.selectedColor].filter(Boolean).join(", ")}) x${i.quantity}`
+        ).join(" | "),
+      },
     });
 
-    // Return the session ID to the frontend
-    return NextResponse.json({ url: session.url });
-  } catch (error: any) {
-    console.error("Stripe Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ id: session.id });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

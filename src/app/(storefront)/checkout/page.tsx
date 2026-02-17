@@ -61,6 +61,16 @@ export default function CheckoutPage() {
     zip.trim() && 
     phone.trim()
   );
+
+  const formData = {
+    firstName,
+    lastName,
+    email,
+    address,
+    city,
+    zip,
+    phone
+  };
   // --- HANDLERS ---
   const handleApplyCoupon = async () => {
       if(!couponCode) return;
@@ -335,7 +345,7 @@ export default function CheckoutPage() {
                     </div>
 
                     {/* 👇 NEW PAYMENT COMPONENT (Replaces the old Submit button) */}
-                    <PaymentMethods cartItems={items} totalPrice={total} isFormValid={isFormValid} />
+                    <PaymentMethods cartItems={items} totalPrice={total} isFormValid={isFormValid} formData={formData} />
 
                     <div className="mt-6 flex justify-center items-center gap-2 text-[10px] text-gray-400 opacity-80">
                         <Lock size={10} /> Secure SSL Encryption

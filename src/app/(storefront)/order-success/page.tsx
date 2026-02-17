@@ -19,7 +19,7 @@ const client = createClient({
 function OrderContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { clearCart } = useCart();
+  const { items, clearCart } = useCart();
 
   // We check for either an existing orderNumber OR a session_id from Stripe/PayPal
   const urlOrderNumber = searchParams.get("orderNumber");
@@ -34,65 +34,15 @@ function OrderContent() {
 
   // 1. CREATE THE ORDER (If returning from Stripe/PayPal)
   // 1. CREATE THE ORDER (If returning from Stripe/PayPal)
-  useEffect(() => {
-    const handlePendingOrder = async () => {
-      if (orderNumber) return;
-
-      if (sessionId) {
-        // Read the data from local storage
-        const pendingOrderData = window.localStorage.getItem("pending_order");
-
-        // 👇 THE FIX: If there is no data, stop immediately.
-        // This stops the duplicate React render in its tracks.
-        if (!pendingOrderData) {
-          // If there is no pending order data but we are still loading,
-          // it means the other render successfully took over.
-          return; 
-        }
-
-        // 👇 THE LOCK: Synchronously delete the data RIGHT NOW.
-        // This guarantees the second render will find 'null' above and stop.
-        window.localStorage.removeItem("pending_order");
-        
-        setCreatingOrder(true);
-        
-        try {
-          const parsedOrder = JSON.parse(pendingOrderData);
-          const response = await fetch("/api/orders/create-order", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(parsedOrder),
-          });
-
-          const data = await response.json();
-
-          if (data.orderNumber) {
-            setOrderNumber(data.orderNumber); 
-            clearCart(); 
-            router.replace(`/order-success?orderNumber=${data.orderNumber}`);
-          }
-        } catch (error) {
-          console.error("Error creating order:", error);
-          // If the API completely crashed, put the data back so the user doesn't lose it
-          window.localStorage.setItem("pending_order", pendingOrderData);
-        } finally {
-          setCreatingOrder(false);
-        }
-      } else {
-         setLoading(false); 
-      }
-    };
-
-    handlePendingOrder();
-  }, [sessionId, orderNumber, router, clearCart]);
+  
 
   // 2. FETCH THE ORDER DETAILS
   useEffect(() => {
     if (!orderNumber) return;
-
-    const fetchOrder = async () => {
+    
+    const fetchOrder = async (retryCount = 0) => {
       try {
-        const query = `*[_type == "order" && orderNumber == $orderNumber][0]{
+        const query = `*[_type == "order" && (orderNumber == $orderNumber || orderNumber == "#" + $orderNumber)][0]{
           _id,
           orderNumber,
           customerName,
@@ -101,19 +51,34 @@ function OrderContent() {
           shippingAddress,
           totalPrice,
           discount,
+          status,
           items[]{
             productName,
             quantity,
             price,
-            "image": product->images[0].asset->url 
+            selectedSize,      // 👈 Added variation fetching
+            selectedMaterial,  // 👈 Added variation fetching
+            selectedColor,     // 👈 Added variation fetching
+            image,
+            "fallbackImage": product->images[0].asset->url 
           }
         }`;
 
         const data = await client.fetch(query, { orderNumber });
-        setOrder(data);
+        // If data isn't found, try up to 3 times with a 2-second gap
+        if (data) {
+          setOrder(data);
+          setLoading(false);
+        } else if (retryCount < 5) {
+          // ⏳ RETRYING: Order not found yet, wait 2 seconds and try again
+          console.log(`Order not found, retrying... (Attempt ${retryCount + 1})`);
+          setTimeout(() => fetchOrder(retryCount + 1), 5000);
+          // Notice we DO NOT set loading to false here!
+        } else {
+          setLoading(false);
+        }
       } catch (error) {
         console.error("Failed to fetch order", error);
-      } finally {
         setLoading(false);
       }
     };
@@ -269,13 +234,15 @@ function OrderContent() {
                       <h3 className="font-serif text-lg md:text-xl text-primary mb-6 pb-4 border-b border-gray-200">Order Summary</h3>
                       
                       <div className="space-y-4 md:space-y-5 max-h-[300px] md:max-h-[400px] overflow-y-auto pr-2 mb-6 md:mb-8 scrollbar-thin scrollbar-thumb-gray-200 print-clean print:max-h-none print:overflow-visible">
-                          {order.items?.map((item: any, idx: number) => (
+                          {order.items?.map((item: any, idx: number) => {
+                            const displayImage = item.image || item.fallbackImage;
+                            return (
                               <div key={idx} className="flex gap-3 md:gap-4 items-center">
                                   <div className="relative w-14 h-16 md:w-16 md:h-20 bg-white rounded-sm overflow-hidden flex-shrink-0 border border-gray-100 print-clean">
-                                      {item.image ? (
-                                          <Image src={item.image} alt={item.productName} fill className="object-cover" />
+                                      {displayImage ? (
+                                        <Image src={displayImage} alt={item.productName} fill className="object-cover" />
                                       ) : (
-                                          <div className="w-full h-full flex items-center justify-center bg-gray-50 text-[10px] text-gray-300">Img</div>
+                                        <div className="w-full h-full flex items-center justify-center bg-gray-50 text-[10px] text-gray-300">Img</div>
                                       )}
                                       <span className="absolute -top-1.5 -right-1.5 w-4 h-4 md:w-5 md:h-5 bg-gray-600 text-white text-[9px] md:text-[10px] font-bold flex items-center justify-center rounded-full z-10 border border-white no-print">
                                           {item.quantity}
@@ -283,13 +250,20 @@ function OrderContent() {
                                   </div>
                                   <div className="flex-1">
                                       <h4 className="font-serif text-sm text-primary line-clamp-2 leading-tight">{item.productName}</h4>
+                                      {/* 👇 DISPLAY VARIATIONS UNDER NAME */}
+                                      <p className="text-[9px] text-gray-400 mt-0.5 uppercase tracking-wider">
+                                        {[item.selectedSize, item.selectedMaterial, item.selectedColor]
+                                          .filter(Boolean)
+                                          .join(" / ")}
+                                      </p>
                                       <p className="text-[10px] text-gray-400 mt-1 uppercase">Qty: {item.quantity}</p>
                                   </div>
                                   <div className="font-medium text-xs md:text-sm text-primary">
                                       <Price amount={item.price * item.quantity} />
                                   </div>
                               </div>
-                          ))}
+                            );  // 👈 1. Add this to close the return statement
+                          })}
                       </div>
 
                       <div className="space-y-2 md:space-y-3 pt-4 md:pt-6 border-t border-gray-200 text-xs md:text-sm text-gray-600">

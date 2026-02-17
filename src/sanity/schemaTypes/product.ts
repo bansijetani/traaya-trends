@@ -89,6 +89,27 @@ export default {
       initialValue: 'instock',
     },
     {
+      name: 'materials',
+      title: 'Available Materials/Colors',
+      type: 'array',
+      of: [{ type: 'string' }],
+      description: 'Example: Gold, Silver, Rose Gold. Press Enter after each one.',
+    },
+    {
+      name: 'sizes',
+      title: 'Available Sizes',
+      type: 'array',
+      of: [{ type: 'string' }],
+      description: 'Example: 48, 50, 52, or S, M, L. Press Enter after each one.',
+    },
+    {
+      name: 'colors',
+      title: 'Available Colors',
+      type: 'array',
+      of: [{ type: 'string' }],
+      description: 'Example: Emerald Green, Ruby Red, Onyx Black. Press Enter after each one.',
+    },
+    {
         name: 'addedBy',
         title: 'Added By',
         type: 'string',

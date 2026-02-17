@@ -10,13 +10,17 @@ export interface CartItem {
   quantity: number;
   slug: string;
   size?: string;
+  selectedSize?: string;
+  selectedMaterial?: string;
+  selectedColor?: string;
+  cartItemId: string;
 }
 
 interface CartContextType {
   items: CartItem[];
   addToCart: (item: CartItem) => void;
-  removeFromCart: (id: string) => void;
-  updateQuantity: (id: string, quantity: number) => void;
+  removeFromCart: (cartItemId: string) => void;
+  updateQuantity: (cartItemId: string, quantity: number) => void;
   clearCart: () => void;
   
   // 👇 Changed these to Numbers (not functions)
@@ -60,7 +64,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // --- ACTIONS ---
   const addToCart = (newItem: CartItem) => {
     setItems((currentItems) => {
-      const existingItem = currentItems.find((item) => item._id === newItem._id);
+      const existingItem = currentItems.find((item) => item.cartItemId === newItem.cartItemId);
       if (existingItem) {
         return currentItems.map((item) =>
           item._id === newItem._id
@@ -73,15 +77,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setIsCartOpen(true);
   };
 
-  const removeFromCart = (id: string) => {
-    setItems((currentItems) => currentItems.filter((item) => item._id !== id));
+  const removeFromCart = (cartItemId: string) => {
+    // 👇 Remove by unique cartItemId
+    setItems((currentItems) => currentItems.filter((item) => item.cartItemId !== cartItemId));
   };
 
-  const updateQuantity = (id: string, quantity: number) => {
+  const updateQuantity = (cartItemId: string, quantity: number) => {
     if (quantity < 1) return;
     setItems((currentItems) =>
       currentItems.map((item) =>
-        item._id === id ? { ...item, quantity } : item
+        item.cartItemId === cartItemId ? { ...item, quantity } : item // 👇 Update by unique cartItemId
       )
     );
   };
