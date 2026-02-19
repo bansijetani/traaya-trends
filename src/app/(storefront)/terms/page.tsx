@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Scale, FileText, AlertCircle, ShieldAlert, Gavel } from "lucide-react";
+import { Scale, FileText, AlertCircle, ShieldAlert, Gavel, IndianRupee } from "lucide-react";
 
 export default function TermsPage() {
   return (
@@ -7,13 +7,13 @@ export default function TermsPage() {
       
       {/* --- HERO HEADER --- */}
       <div className="max-w-4xl mx-auto px-6 text-center mb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 text-primary">
+        <div className="w-16 h-16 bg-[#3A4D39]/10 rounded-full flex items-center justify-center mx-auto mb-6 text-[#3A4D39]">
             <Scale size={28} strokeWidth={1.5} />
         </div>
-        <h1 className="font-serif text-4xl md:text-5xl text-primary mb-6">Terms of Service</h1>
+        <h1 className="font-serif text-4xl md:text-5xl text-[#3A4D39] mb-6">Terms of Service</h1>
         <p className="text-gray-500 max-w-2xl mx-auto text-sm md:text-base leading-relaxed">
-          Welcome to Traaya Trends. By accessing or using our website, you agree to be bound by the following terms and conditions. 
-          Please read them carefully before making a purchase.
+          Welcome to Traaya Trends. By accessing our website and purchasing our jewelry, you agree to be bound by the following terms and conditions 
+          under the laws of India. Please read them carefully.
         </p>
         <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mt-6">
             Last Updated: February 2026
@@ -26,68 +26,66 @@ export default function TermsPage() {
         {/* Section 1: Overview */}
         <section className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
             <div className="flex items-center gap-3 mb-6">
-                <FileText size={20} className="text-primary" />
-                <h2 className="font-serif text-2xl md:text-3xl text-primary">1. Overview</h2>
+                <FileText size={20} className="text-[#3A4D39]" />
+                <h2 className="font-serif text-2xl md:text-3xl text-[#3A4D39]">1. General Conditions</h2>
             </div>
             <div className="space-y-4 text-sm md:text-base text-gray-500 leading-loose">
                 <p>
-                    This website is operated by Traaya Trends. Throughout the site, the terms “we”, “us” and “our” refer to Traaya Trends. 
-                    We offer this website, including all information, tools, and services available from this site to you, the user, conditioned upon your acceptance of all terms, conditions, policies, and notices stated here.
+                    This website is operated by Traaya Trends. By visiting our site and/or purchasing something from us, you engage in our "Service" and agree to be bound by these Terms.
                 </p>
                 <p>
-                    By visiting our site and/ or purchasing something from us, you engage in our “Service” and agree to be bound by the following terms and conditions (“Terms of Service”, “Terms”), including those additional terms and conditions and policies referenced herein.
+                    We reserve the right to refuse service to anyone for any reason at any time. You understand that your content (not including credit card information), may be transferred unencrypted and involve transmissions over various networks. Credit card and UPI information is always encrypted during transfer over networks.
                 </p>
             </div>
         </section>
 
         <div className="border-t border-gray-100"></div>
 
-        {/* Section 2: Online Store Terms */}
+        {/* Section 2: Products & Pricing */}
         <section className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-            <h2 className="font-serif text-2xl md:text-3xl text-primary mb-6">2. Online Store Terms</h2>
+             <div className="flex items-center gap-3 mb-6">
+                <IndianRupee size={20} className="text-[#3A4D39]" />
+                <h2 className="font-serif text-2xl md:text-3xl text-[#3A4D39]">2. Products & Pricing</h2>
+            </div>
             <div className="space-y-4 text-sm md:text-base text-gray-500 leading-loose">
-                <ul className="list-disc pl-5 space-y-2 marker:text-primary">
-                    <li>By agreeing to these Terms of Service, you represent that you are at least the age of majority in your state or province of residence.</li>
-                    <li>You may not use our products for any illegal or unauthorized purpose nor may you, in the use of the Service, violate any laws in your jurisdiction (including but not limited to copyright laws).</li>
-                    <li>You must not transmit any worms or viruses or any code of a destructive nature.</li>
-                    <li>A breach or violation of any of the Terms will result in an immediate termination of your Services.</li>
+                <ul className="list-disc pl-5 space-y-2 marker:text-[#3A4D39]">
+                    <li><strong>Pricing:</strong> All prices are listed in Indian Rupees (INR) and are inclusive of GST unless stated otherwise. Prices are subject to change without notice.</li>
+                    <li><strong>Accuracy:</strong> We have made every effort to display as accurately as possible the colors and images of our products. However, as monitors vary, we cannot guarantee that your monitor's display of any color will be accurate.</li>
+                    <li><strong>Handcrafted Nature:</strong> As our jewelry is hand-finished, slight variations in plating tone or stone setting may occur. These are not defects but part of the bespoke charm.</li>
                 </ul>
             </div>
         </section>
 
         <div className="border-t border-gray-100"></div>
 
-        {/* Section 3: Products & Pricing */}
+        {/* Section 3: Billing & Payments */}
         <section className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
             <div className="flex items-center gap-3 mb-6">
-                <AlertCircle size={20} className="text-primary" />
-                <h2 className="font-serif text-2xl md:text-3xl text-primary">3. Modifications to Service & Prices</h2>
+                <AlertCircle size={20} className="text-[#3A4D39]" />
+                <h2 className="font-serif text-2xl md:text-3xl text-[#3A4D39]">3. Billing & Account Accuracy</h2>
             </div>
             <div className="space-y-4 text-sm md:text-base text-gray-500 leading-loose">
                 <p>
-                    Prices for our products are subject to change without notice. We reserve the right at any time to modify or discontinue the Service (or any part or content thereof) without notice at any time.
+                    We reserve the right to refuse any order you place with us. In the event that we make a change to or cancel an order, we may attempt to notify you by contacting the e-mail and/or billing address/phone number provided at the time the order was made.
                 </p>
                 <p>
-                    We shall not be liable to you or to any third-party for any modification, price change, suspension, or discontinuance of the Service.
-                </p>
-                <p>
-                    We have made every effort to display as accurately as possible the colors and images of our products that appear at the store. We cannot guarantee that your computer monitor's display of any color will be accurate.
+                    You agree to provide current, complete, and accurate purchase and account information. For prepaid orders, if a payment is flagged by our fraud detection system, we may require additional verification before dispatching.
                 </p>
             </div>
         </section>
 
         <div className="border-t border-gray-100"></div>
 
-        {/* Section 4: Accuracy of Billing */}
+        {/* Section 4: Returns & Cancellations */}
         <section className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-400">
-            <h2 className="font-serif text-2xl md:text-3xl text-primary mb-6">4. Accuracy of Billing & Account Information</h2>
+            <h2 className="font-serif text-2xl md:text-3xl text-[#3A4D39] mb-6">4. Returns & Cancellations</h2>
             <div className="space-y-4 text-sm md:text-base text-gray-500 leading-loose">
                 <p>
-                    We reserve the right to refuse any order you place with us. We may, in our sole discretion, limit or cancel quantities purchased per person, per household or per order. 
-                    These restrictions may include orders placed by or under the same customer account, the same credit card, and/or orders that use the same billing and/or shipping address.
+                    <strong>Cancellations:</strong> You may cancel your order within 2 hours of placing it by contacting us via WhatsApp or Email. Once processed/shipped, orders cannot be canceled.
                 </p>
                 <p>
-                    You agree to provide current, complete, and accurate purchase and account information for all purchases made at our store. You agree to promptly update your account and other information, including your email address and credit card numbers and expiration dates, so that we can complete your transactions and contact you as needed.
+                    <strong>Returns:</strong> Our policy lasts 7 days from the date of delivery. To be eligible for a return, your item must be unused and in the same condition that you received it. 
+                    <em> Note: Earrings and Nose Pins are exempt from being returned due to hygiene reasons.</em>
                 </p>
             </div>
         </section>
@@ -97,12 +95,15 @@ export default function TermsPage() {
         {/* Section 5: Governing Law */}
         <section className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-500">
             <div className="flex items-center gap-3 mb-6">
-                <Gavel size={20} className="text-primary" />
-                <h2 className="font-serif text-2xl md:text-3xl text-primary">5. Governing Law</h2>
+                <Gavel size={20} className="text-[#3A4D39]" />
+                <h2 className="font-serif text-2xl md:text-3xl text-[#3A4D39]">5. Governing Law</h2>
             </div>
             <div className="space-y-4 text-sm md:text-base text-gray-500 leading-loose">
                 <p>
-                    These Terms of Service and any separate agreements whereby we provide you Services shall be governed by and construed in accordance with the laws of the United States.
+                    These Terms of Service and any separate agreements whereby we provide you Services shall be governed by and construed in accordance with the laws of <strong>India</strong>.
+                </p>
+                <p>
+                    Any disputes arising out of or in connection with these terms shall be subject to the exclusive jurisdiction of the courts in <strong>[Your City, e.g., Mumbai], India</strong>.
                 </p>
             </div>
         </section>
@@ -110,16 +111,16 @@ export default function TermsPage() {
       </div>
 
       {/* --- CONTACT CTA --- */}
-      <div className="mt-24 text-center bg-[#F9F9F9] py-16 px-6 mx-4 md:mx-auto max-w-4xl">
-        <h3 className="font-serif text-2xl text-primary mb-4">Questions about the Terms?</h3>
+      <div className="mt-24 text-center bg-[#F9F9F9] py-16 px-6 mx-4 md:mx-auto max-w-4xl rounded-sm">
+        <h3 className="font-serif text-2xl text-[#3A4D39] mb-4">Questions about the Terms?</h3>
         <p className="text-gray-500 text-sm mb-8 max-w-lg mx-auto">
-            If you have any questions regarding our Terms of Service, please contact our legal team for clarification.
+            If you have any questions regarding our Terms of Service, please contact our support team for clarification.
         </p>
         <Link 
-            href="mailto:legal@traaya.com" 
-            className="inline-flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg shadow-primary/10"
+            href="mailto:support@traayatrends.com" 
+            className="inline-flex items-center justify-center gap-2 bg-[#3A4D39] text-white px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-[#2A3829] transition-all shadow-lg shadow-[#3A4D39]/20"
         >
-            <ShieldAlert size={16} /> Contact Legal Team
+            <ShieldAlert size={16} /> Contact Support
         </Link>
       </div>
 

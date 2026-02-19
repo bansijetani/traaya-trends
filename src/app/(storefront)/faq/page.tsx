@@ -7,19 +7,36 @@ import Link from "next/link";
 // --- FAQ DATA ---
 const faqCategories = [
   {
-    title: "Orders & Shipping",
+    title: "Orders & Payments",
     items: [
       {
-        q: "How can I track my order?",
-        a: "Once your order has been dispatched, you will receive a confirmation email with a tracking number. You can also track your order directly on our 'Track Order' page using your order ID and email."
+        q: "Do you offer Cash on Delivery (COD)?",
+        a: "To ensure the fastest and most secure delivery experience, we currently accept Prepaid orders only. You can pay securely via any UPI app (GPay, PhonePe, Paytm), Credit/Debit Card, or Paypal."
       },
       {
-        q: "Do you ship internationally?",
-        a: "Yes, we ship to most countries worldwide. International shipping costs are calculated at checkout based on your location and the weight of your order. Please note that customs duties may apply."
+        q: "Is my payment information safe?",
+        a: "Absolutely. We use India’s leading payment gateways which are 100% secure and encrypted. We do not store your card details or banking information."
       },
       {
-        q: "Can I change or cancel my order?",
-        a: "We process orders quickly to ensure fast delivery. If you need to make changes, please contact our support team within 1 hour of placing your order. After this window, we cannot guarantee changes."
+        q: "Can I cancel my order?",
+        a: "We try to dispatch orders within 24 hours! If you need to cancel, please WhatsApp or email us within 2 hours of placing your order. Once shipped, orders cannot be canceled."
+      }
+    ]
+  },
+  {
+    title: "Shipping & Delivery",
+    items: [
+      {
+        q: "How long will my order take to arrive?",
+        a: "We dispatch from our warehouse within 24 hours. Delivery typically takes 2–4 business days for Metro Cities and 4–7 business days for the Rest of India."
+      },
+      {
+        q: "How do I track my shipment?",
+        a: "As soon as your order leaves our studio, you will receive a WhatsApp and Email with your tracking link (usually via Blue Dart or Delhivery), so you can trace your package live."
+      },
+      {
+        q: "Do you offer free shipping?",
+        a: "Yes! We offer Free Shipping on all orders above ₹1,999. For orders below this amount, a small flat shipping fee of ₹99 applies."
       }
     ]
   },
@@ -28,28 +45,32 @@ const faqCategories = [
     items: [
       {
         q: "What is your return policy?",
-        a: "We accept returns within 30 days of delivery. Items must be unworn, in their original condition, and in the original packaging. Personalized items are final sale."
+        a: "We offer a simple 14-Day Return Policy. If you are not happy with your purchase, you can return it for a full refund or store credit. The item must be unworn and in its original packaging."
       },
       {
-        q: "How do I initiate a return?",
-        a: "Log in to your account, go to 'Order History', and select the item you wish to return. Follow the prompts to generate a return label. Guests can contact care@traaya.com."
+        q: "Are there any items I cannot return?",
+        a: "Yes. For hygiene reasons, Earrings and Nose Pins are Non-Returnable. Personalized or Customized jewelry is also final sale."
       },
       {
-        q: "When will I receive my refund?",
-        a: "Once we receive and inspect your return, refunds are processed within 5-7 business days to your original payment method."
+        q: "What if I receive a damaged item?",
+        a: "We inspect everything 3 times! But if damage happens in transit, please send us an Unboxing Video within 48 hours of delivery. This is mandatory for us to process a free replacement for you."
       }
     ]
   },
   {
-    title: "Product Care",
+    title: "Jewelry Care & Materials",
     items: [
       {
-        q: "How do I care for my jewelry?",
-        a: "Keep your jewelry dry and store it in the provided pouch when not in use. Avoid contact with perfumes, lotions, and harsh chemicals to maintain its shine."
+        q: "Is your jewelry real gold?",
+        a: "Our pieces are 'Demi-Fine.' They are crafted from high-quality, hypoallergenic brass or stainless steel and finished with a thick layer of 18k Gold or Rhodium plating for a luxurious look that lasts."
       },
       {
-        q: "Do you offer a warranty?",
-        a: "Yes, all Traaya Trends pieces come with a 1-year warranty covering manufacturing defects. This does not cover normal wear and tear or accidental damage."
+        q: "Will the polish fade?",
+        a: "All plated jewelry eventually fades over time, but with proper care, ours can last for years! We recommend keeping your pieces away from water, perfumes, and sanitizers to maintain their shine."
+      },
+      {
+        q: "Does the jewelry turn skin green?",
+        a: "No. We use Nickel-Free and Lead-Free metals that are hypoallergenic and safe for sensitive skin."
       }
     ]
   }
@@ -118,7 +139,8 @@ export default function FAQPage() {
       {/* --- CONTACT CTA --- */}
       <div className="mt-24 text-center bg-[#F9F9F9] py-16 px-6 mx-4 md:mx-auto max-w-4xl">
         <h3 className="font-serif text-2xl text-primary mb-4">Still need assistance?</h3>
-        <p className="text-gray-500 text-sm mb-8">Our dedicated client care team is available Monday to Friday, 9am - 5pm EST.</p>
+        <p className="text-gray-500 text-sm mb-8">Can't find what you're looking for? Our dedicated team is available 
+            <strong> Monday to Saturday, 10 AM - 7 PM IST</strong> to help you with sizing, styling, or order queries.</p>
         <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link 
                 href="/contact" 

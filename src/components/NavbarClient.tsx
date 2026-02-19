@@ -71,13 +71,10 @@ export default function NavbarClient({ data }: NavbarClientProps) {
         {/* TOP BAR */}
         <div className="bg-secondary text-white border-b border-gray-100 hidden sm:block relative z-[60]">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
-            <div className="flex justify-between items-center h-10">
-              <CurrencyLanguageSwitcher mode="dark" />
-              <div className="text-[10px] font-bold uppercase tracking-widest text-primary">
-                Complimentary Shipping on Orders Above $200
-              </div>
-              <div className="flex items-center gap-6 text-[10px] font-bold uppercase tracking-widest text-white">
-                 <Link href="/login" className="hover:text-gray-200 transition-colors">Sign In/Up</Link>
+            <div className="flex justify-center items-center h-10 text-center">
+              {/* <CurrencyLanguageSwitcher mode="dark" /> */}
+              <div className=" text-[10px] font-bold uppercase tracking-widest text-white">
+                Complimentary Shipping on Orders Above ₹1,999
               </div>
             </div>
           </div>
@@ -221,7 +218,7 @@ export default function NavbarClient({ data }: NavbarClientProps) {
                     </Link>
                 </div>
                 {/* ...Rest of footer... */}
-                <CurrencyLanguageSwitcher mode="light" position="top" />
+                {/* <CurrencyLanguageSwitcher mode="light" position="top" /> */}
             </div>
         </div>
       </nav>

@@ -3,8 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Grid3X3, ArrowDown } from "lucide-react";
 import AddToCartButton from "@/components/AddToCartButton"; 
-import HeroSlider from "@/components/HeroSlider";
 import Price from "@/components/Price";
+import HeroStatic from "@/components/HeroStatic";
 
 
 // --- DATA FETCHING ---
@@ -73,46 +73,12 @@ export default async function Home() {
       {/* Main BG: Uses 'bg-page' (Admin Background Color) */}
       <main className="min-h-screen bg-page">
         
-        {/* ================= HERO BANNER SLIDER ================= */}
-        <HeroSlider />
-
-         {/* 2. OUR STORY SECTION */}
-         <section className="bg-white py-16 md:py-24 px-4 sm:px-6">
-            <div className="max-w-[1400px] mx-auto">
-            
-            {/* Content Container */}
-            <div className="flex flex-col md:flex-row items-center justify-center gap-10 md:gap-32 mb-20 md:mb-28">
-                  
-                  {/* Circular Badge */}
-                  <div className="flex-shrink-0 relative group animate-in fade-in slide-in-from-bottom-8 duration-1000">
-                     <div className="w-48 h-48 md:w-64 md:h-64 rounded-full border border-secondary flex flex-col items-center justify-center p-6 text-center transition-transform duration-700 group-hover:scale-105 bg-white">
-                        <span className="font-serif text-3xl md:text-4xl text-secondary mb-1">TRAAYA</span>
-                        <span className="font-serif italic text-secondary text-lg md:text-2xl">Trends</span>
-                     </div>
-                  </div>
-
-                  {/* Text Content */}
-                  <div className="max-w-2xl text-center md:text-left animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-200">
-                     <p className="font-sans text-xl md:text-3xl md:leading-[1.4] text-primary mb-10 font-light">
-                        We believe jewelry is more than an accessory—it’s a story of individuality and style. Our curated collection blends timeless craftsmanship with modern design, creating pieces that empower <span className="text-primary/40">you to express your unique elegance every day.</span>
-                     </p>
-                     
-                     <Link href="/about" className="group inline-flex items-center gap-3 text-secondary text-xs font-bold uppercase tracking-[0.2em] hover:text-primary transition-colors">
-                        Our Story
-                        <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform duration-300" />
-                     </Link>
-                  </div>
-            </div>
-
-            <div className="w-full h-px bg-secondary opacity-30"></div>
-
-            </div>
-         </section>
-
+        {/* ================= HERO BANNER section ================= */}
+        <HeroStatic />
         {/* ================= CATEGORY HIGHLIGHTS ================= */}
-        <section className="pt-0 pb-16 md:pb-24 max-w-[1600px] mx-auto px-4 sm:px-6">
+        <section className="pt-16 pb-16 md:pb-24 max-w-[1600px] mx-auto px-4 sm:px-6">
             <div className="text-center mb-16">
-                <h2 className="font-serif text-3xl md:text-4xl text-primary">Shop by Category</h2>
+                <h2 className="font-serif text-3xl md:text-3xl text-primary"> Discover Traaya's Jewelry  </h2>
                 <div className="w-20 h-0.5 bg-secondary mx-auto mt-4"></div>
             </div>
 
@@ -164,7 +130,7 @@ export default async function Home() {
                 <span className="text-secondary text-xs font-bold uppercase tracking-[0.2em] animate-in fade-in slide-in-from-bottom-2">
                     Fresh Drops
                 </span>
-                <h2 className="font-serif text-4xl md:text-5xl text-primary mt-3 mb-6">
+                <h2 className="font-serif text-4xl md:text-4xl text-primary mt-3 mb-6">
                     New Arrivals
                 </h2>
                 <div className="w-20 h-[1px] bg-gray-200 mx-auto"></div>
@@ -267,7 +233,7 @@ export default async function Home() {
                 <span className="text-secondary text-xs font-bold uppercase tracking-[0.2em]">
                     Handpicked
                 </span>
-                <h2 className="font-serif text-4xl md:text-5xl text-primary mt-3 mb-6">
+                <h2 className="font-serif text-4xl md:text-4xl text-primary mt-3 mb-6">
                     The Spotlight
                 </h2>
                 <div className="w-20 h-[1px] bg-gray-200 mx-auto"></div>
@@ -308,7 +274,7 @@ export default async function Home() {
         <section className="max-w-[1600px] mx-auto px-4 sm:px-6 mb-24">
              <div className="text-center mb-16">
                 <span className="text-secondary text-xs font-bold uppercase tracking-[0.2em]">Customer Favorites</span>
-                <h2 className="font-serif text-4xl md:text-5xl text-primary mt-3 mb-6">Best Sellers</h2>
+                <h2 className="font-serif text-4xl md:text-4xl text-primary mt-3 mb-6">Best Sellers</h2>
                 <div className="w-20 h-[1px] bg-gray-200 mx-auto"></div>
             </div>
 

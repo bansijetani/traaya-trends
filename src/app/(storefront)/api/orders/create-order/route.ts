@@ -22,13 +22,13 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     
-    // 👇 1. Pull out BOTH possible array names (cartItems and items)
+    // Pull out all data from the request body
     const { 
         firstName, lastName, email, address, city, zip, phone, 
         cartItems, items, couponCode, discount, total 
     } = body;
 
-    // 👇 2. SAFETY CHECK: Use whichever one exists, fallback to empty array
+    // SAFETY CHECK: Use whichever array exists
     const safeItems = cartItems || items || [];
 
     if (safeItems.length === 0) {
@@ -54,39 +54,38 @@ export async function POST(req: Request) {
     const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const transaction = client.transaction();
 
-    // 1. Create Order Document
+    // 1. Create Order Document (FIXED TO MATCH SCHEMA EXACTLY)
     const orderObject = {
       _type: 'order',
       orderNumber: orderNumber,
       orderDate: new Date().toISOString(),
-      customerName: `${firstName} ${lastName}`, 
+      
+      // Matched exactly to your schema fields
+      firstName: firstName, 
+      lastName: lastName,
       email: email,
       phone: phone,
-      shippingAddress: `${address}, ${city}, ${zip}`, 
-      totalPrice: total,
+      address: address, 
+      city: city,
+      zipCode: zip,
+      total: total,
       discount: Number(discount) || 0, 
       couponCode: couponCode || null,
       status: 'pending',
       
-      // 👇 3. Use safeItems here!
+      // Matched exactly to your items array schema
       items: safeItems.map((item: any) => ({
-        _type: 'object', 
         _key: crypto.randomUUID(), 
-        product: { _type: 'reference', _ref: item._id }, 
+        name: item.name,          // FIXED: Was productName
         quantity: item.quantity,
         price: item.price,
-        productName: item.name,
-        selectedSize: item.selectedSize || null,         
-        selectedMaterial: item.selectedMaterial || null, 
-        selectedColor: item.selectedColor || null,
-        image: item.image || null        
+        image: item.image || null // Make sure your frontend cart passes the image URL string here
       }))
     };
 
     transaction.create(orderObject);
     
     // 2. Deduct Stock
-    // 👇 4. Use safeItems here too!
     safeItems.forEach((item: any) => {
         if (item._id) {
             transaction.patch(item._id, (p) => p.dec({ stockLevel: item.quantity }));
@@ -123,7 +122,7 @@ export async function POST(req: Request) {
             });
 
             await resend.emails.send({
-                from: 'Traaya Trends <onboarding@resend.dev>', 
+                from: 'Traaya Trends <support@traayatrends.com>', 
                 to: email,
                 subject: `Order Confirmed: ${orderNumber}`,
                 html: emailHtml,
@@ -141,13 +140,13 @@ export async function POST(req: Request) {
                         orderNumber,
                         customerName: `${firstName} ${lastName}`,
                         totalAmount: total,
-                        items: cartItems, 
+                        items: safeItems, // Pass safeItems so admin email doesn't break
                         shippingAddress: `${address}, ${city}, ${zip}`
                     }
                 });
 
                 await resend.emails.send({
-                    from: 'Traaya Trends <onboarding@resend.dev>',
+                    from: 'Traaya Trends <support@traayatrends.com>',
                     to: adminEmails, 
                     subject: `💰 New Order: ${orderNumber} - $${total}`,
                     html: adminHtml

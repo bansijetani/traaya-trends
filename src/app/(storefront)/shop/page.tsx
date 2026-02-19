@@ -1,7 +1,6 @@
 import { client } from "@/sanity/lib/client";
 import Image from "next/image";
 import Link from "next/link";
-// 👇 FIXED: Added 'X' and 'Check' to the imports
 import { ChevronDown, X, Check, Grid, LayoutGrid, Columns, ChevronLeft, ChevronRight } from "lucide-react";
 import AddToCartButton from "@/components/AddToCartButton";
 import Price from "@/components/Price";
@@ -100,20 +99,16 @@ export default async function ShopPage(props: { searchParams: SearchParamsType }
   const removeFilterUrl = (type: 'stock' | 'price' | 'category', value?: string) => {
       const params = new URLSearchParams();
 
-      // Handle Category Removal (Specific Slug)
       if (type === 'category' && value) {
           const newCats = selectedCategories.filter(c => c !== value);
           if (newCats.length > 0) params.set("category", newCats.join(','));
       } else if (type !== 'category' && selectedCategories.length > 0) {
-          // Keep categories if removing something else
           params.set("category", selectedCategories.join(','));
       }
 
-      // Handle Stock/Price Removal
       if (type !== 'stock' && stockParam) params.set("stock", stockParam);
       if (type !== 'price' && priceParam) params.set("price", priceParam);
       
-      // Keep Sort/Grid
       if (sortParam) params.set("sort", sortParam);
       if (gridParam) params.set("grid", gridParam);
 
@@ -135,33 +130,36 @@ export default async function ShopPage(props: { searchParams: SearchParamsType }
     <div className="bg-white min-h-screen pb-24">
       <div className="max-w-[1600px] mx-auto px-6 pt-32 md:pt-40 pb-8">
         
-        {/* HEADER */}
+        {/* BREADCRUMBS */}
         <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-6">
             <Link href="/" className="hover:text-primary">Home</Link> <span className="mx-2">—</span> <span className="text-primary">{title}</span>
         </div>
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 mb-8 border-b border-gray-100 pb-8">
-            <div className="relative">
-                <h1 className="font-serif text-4xl md:text-6xl text-primary uppercase tracking-tight">{title}</h1>
+
+        {/* HEADER & TOP CATEGORIES (Merged into one row on Desktop) */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-8 border-b border-gray-100 pb-8">
+            {/* Title */}
+            <div className="relative shrink-0">
+                <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl text-primary uppercase tracking-tight">{title}</h1>
                 <span className="absolute -top-2 -right-6 text-sm font-bold text-secondary">{filteredProducts.length}</span>
             </div>
-        </div>
 
-        {/* TOP CATEGORIES (Slider) */}
-        <div className="flex pt-4 flex-nowrap md:flex-wrap overflow-x-auto md:overflow-visible justify-start md:justify-center gap-4 md:gap-10 mb-8 border-b border-gray-100 pb-8 px-4 md:px-0 -mx-6 md:mx-0 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            <Link href={buildUrl('category', '')} className="group flex flex-col items-center gap-3 flex-shrink-0 snap-center">
-                <div className={`relative w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden border transition-all duration-300 bg-primary text-white ${selectedCategories.length === 0 ? 'border-secondary ring-1 ring-secondary ring-offset-4' : 'border-transparent group-hover:border-secondary'}`}>
-                    <div className="w-full h-full flex items-center justify-center text-xs font-serif tracking-widest uppercase">All</div>
-                </div>
-                <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${selectedCategories.length === 0 ? 'text-secondary' : 'text-primary'}`}>All</span>
-            </Link>
-            {categories.slice(0, 5).map((cat: any) => (
-                <Link key={cat._id} href={`/shop?category=${cat.slug}`} className="group flex flex-col items-center gap-3 flex-shrink-0 snap-center">
-                    <div className={`relative w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden border transition-all duration-300 ${selectedCategories.includes(cat.slug) ? 'border-secondary ring-1 ring-secondary ring-offset-4' : 'border-gray-100 group-hover:border-secondary shadow-sm'}`}>
-                        {cat.imageUrl ? <Image src={cat.imageUrl} alt={cat.name || "Category"} fill className="object-cover" /> : <div className="w-full h-full bg-gray-100" />}
+            {/* Categories Slider (Moves to the right on lg screens) */}
+            <div className="flex flex-nowrap lg:flex-wrap overflow-x-auto lg:overflow-visible justify-start lg:justify-end gap-3 md:gap-5 w-full lg:w-auto px-1 py-2 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <Link href={buildUrl('category', '')} className="group flex flex-col items-center gap-2 flex-shrink-0 snap-center">
+                    <div className={`relative w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border transition-all duration-300 bg-primary text-white ${selectedCategories.length === 0 ? 'border-secondary ring-1 ring-secondary ring-offset-4' : 'border-transparent group-hover:border-secondary'}`}>
+                        <div className="w-full h-full flex items-center justify-center text-[10px] md:text-xs font-serif tracking-widest uppercase">All</div>
                     </div>
-                    <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${selectedCategories.includes(cat.slug) ? 'text-secondary' : 'text-primary'}`}>{cat.name}</span>
+                    <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-colors ${selectedCategories.length === 0 ? 'text-secondary' : 'text-primary'}`}>All</span>
                 </Link>
-            ))}
+                {categories.slice(0, 5).map((cat: any) => (
+                    <Link key={cat._id} href={`/shop?category=${cat.slug}`} className="group flex flex-col items-center gap-2 flex-shrink-0 snap-center">
+                        <div className={`relative w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border transition-all duration-300 ${selectedCategories.includes(cat.slug) ? 'border-secondary ring-1 ring-secondary ring-offset-4' : 'border-gray-100 group-hover:border-secondary shadow-sm'}`}>
+                            {cat.imageUrl ? <Image src={cat.imageUrl} alt={cat.name || "Category"} fill className="object-cover" /> : <div className="w-full h-full bg-gray-100" />}
+                        </div>
+                        <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-colors ${selectedCategories.includes(cat.slug) ? 'text-secondary' : 'text-primary'}`}>{cat.name}</span>
+                    </Link>
+                ))}
+            </div>
         </div>
 
         {/* MOBILE INLINE FILTER BAR */}

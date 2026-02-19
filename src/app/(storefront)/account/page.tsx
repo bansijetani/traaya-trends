@@ -7,7 +7,8 @@ import { client } from "@/sanity/lib/client";
 import { useSession } from "next-auth/react"; 
 import { 
   Package, Heart, MapPin, Settings, LogOut, 
-  User, Loader2, Plus, Edit2, Trash2, ChevronRight, Lock, Bell 
+  User, Loader2, Plus, Edit2, Trash2, ChevronRight, Lock, Bell,
+  RefreshCw, AlertCircle, Truck, CheckCircle, Clock, ChevronLeft
 } from "lucide-react";
 import toast from "react-hot-toast"; 
 import Price from "@/components/Price";
@@ -40,7 +41,7 @@ export default function AccountPage() {
   };
   const [newAddress, setNewAddress] = useState(initialFormState);
 
-  // Pagination
+  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5;
 
@@ -54,6 +55,24 @@ export default function AccountPage() {
     confirmPassword: "",
     marketing: true
   });
+
+  // --- HELPER: Return Eligibility Logic (14 DAYS) ---
+  const checkReturnEligibility = (orderDate: string, orderStatus: string) => {
+    if (!orderStatus || orderStatus.toLowerCase() !== 'delivered') return false;
+    
+    const deliveryDate = new Date(orderDate); 
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - deliveryDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays <= 14; 
+  };
+
+  const getReturnWindowDate = (orderDate: string) => {
+    const date = new Date(orderDate);
+    date.setDate(date.getDate() + 14); 
+    return date.toLocaleDateString("en-IN", { month: 'short', day: 'numeric' });
+  };
 
   useEffect(() => {
     if (status === "loading") return;
@@ -74,7 +93,6 @@ export default function AccountPage() {
                 
                 setMyAddresses(userData.addresses || []);
                 
-                // Pre-fill Settings Form
                 setSettingsForm(prev => ({ 
                     ...prev, 
                     name: userData.name || "", 
@@ -83,15 +101,29 @@ export default function AccountPage() {
                 }));
 
                 const targetEmail = email || userData.email;
-                const orderQuery = `*[_type == "order" && (
-                    customer._ref == $userId || customer->email == $userEmail || email == $userEmail
-                )] | order(_createdAt desc) {
-                    _id, orderNumber, _createdAt, status, totalPrice, "itemCount": count(products)
+                
+                // --- THE FIXED QUERY ---
+                // Matches your specific order schema exactly
+                const orderQuery = `*[_type == "order" && email == $userEmail] | order(_createdAt desc) {
+                    _id, 
+                    orderNumber, 
+                    _createdAt,
+                    "orderDate": coalesce(orderDate, _createdAt),
+                    status, 
+                    "totalPrice": total, 
+                    "products": items[]{
+                        name,
+                        image,
+                        price,
+                        quantity,
+                        _key
+                    }
                 }`;
-                const orderData = await client.fetch(orderQuery, { userId, userEmail: targetEmail });
+                
+                const orderData = await client.fetch(orderQuery, { userEmail: targetEmail });
                 setMyOrders(orderData);
             } 
-        } catch (error) { console.error(error); } finally { setLoading(false); }
+        } catch (error) { console.error("Error fetching data:", error); } finally { setLoading(false); }
     };
 
     if (localUserId) { fetchUserData(localUserId); return; }
@@ -171,7 +203,6 @@ export default function AccountPage() {
         return;
     }
 
-    // Simulate API Call (You would connect this to your backend later)
     setTimeout(() => {
         toast.success("Profile updated successfully!");
         setSettingsForm(prev => ({ ...prev, currentPassword: "", newPassword: "", confirmPassword: "" }));
@@ -179,7 +210,15 @@ export default function AccountPage() {
     }, 1500);
   };
 
+  // --- PAGINATION LOGIC ---
+  const totalPages = Math.ceil(myOrders.length / ITEMS_PER_PAGE);
   const currentOrders = myOrders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' }); 
+  };
+
   const totalSpent = myOrders.reduce((acc, curr) => acc + (curr.totalPrice || 0), 0);
 
   if (loading || status === "loading") return (
@@ -252,33 +291,178 @@ export default function AccountPage() {
 
           {/* 2. ORDERS */}
           {activeTab === "orders" && (
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <h2 className="font-serif text-2xl text-primary mb-8">Order History</h2>
-                {myOrders.length === 0 ? (
-                    <div className="text-center py-16 border border-dashed border-gray-200">
-                        <Package size={32} className="mx-auto text-gray-300 mb-4" />
-                        <p className="text-gray-400 text-sm">You haven't placed any orders yet.</p>
-                        <Link href="/shop" className="text-secondary text-xs font-bold uppercase tracking-widest mt-4 inline-block hover:underline">Start Shopping</Link>
-                    </div>
-                ) : (
-                  <div className="overflow-hidden border border-gray-100 rounded-sm">
-                      <table className="w-full text-left border-collapse min-w-[600px]">
-                        <thead className="bg-gray-50"><tr className="text-[10px] font-bold uppercase tracking-widest text-gray-500"><th className="py-4 pl-6">Order</th><th className="py-4">Date</th><th className="py-4">Status</th><th className="py-4">Total</th><th className="py-4 text-right pr-6">Action</th></tr></thead>
-                        <tbody className="text-sm divide-y divide-gray-100">
-                            {currentOrders.map((order) => (
-                                <tr key={order._id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="py-5 pl-6 font-bold font-serif text-primary">#{order.orderNumber}</td>
-                                    <td className="py-5 text-gray-500">{new Date(order._createdAt).toLocaleDateString()}</td>
-                                    <td className="py-5"><span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-sm ${order.status === 'delivered' ? 'bg-green-100 text-green-700' : order.status === 'processing' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{order.status || 'Pending'}</span></td>
-                                    <td className="py-5 font-medium text-secondary"><Price amount={order.totalPrice} /></td>
-                                    <td className="py-5 text-right pr-6"><Link href={`/account/orders/${order._id}`} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest hover:text-secondary">Details <ChevronRight size={12}/></Link></td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 space-y-8">
+              <h2 className="font-serif text-2xl text-primary mb-8">Order History</h2>
+              
+              {myOrders.length === 0 ? (
+                  <div className="text-center py-16 border border-dashed border-gray-200">
+                      <Package size={32} className="mx-auto text-gray-300 mb-4" />
+                      <p className="text-gray-400 text-sm">You haven't placed any orders yet.</p>
+                      <Link href="/shop" className="text-secondary text-xs font-bold uppercase tracking-widest mt-4 inline-block hover:underline">Start Shopping</Link>
                   </div>
-                )}
-              </div>
+              ) : (
+                <div className="space-y-6">
+                  {currentOrders.map((order) => {
+                    const isReturnable = checkReturnEligibility(order.orderDate || order._createdAt, order.status);
+                    const returnDeadline = getReturnWindowDate(order.orderDate || order._createdAt);
+                    
+                    return (
+                      <div key={order._id} className="bg-white rounded-sm shadow-sm border border-gray-100 overflow-hidden">
+                        
+                        {/* Order Header */}
+                        <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row justify-between gap-4 text-sm text-gray-500">
+                          <div className="flex flex-wrap gap-8">
+                            <div>
+                              <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Date</span>
+                              <span className="text-gray-800 font-medium">{new Date(order.orderDate || order._createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <div>
+                              <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Total</span>
+                              <span className="text-gray-800 font-medium"><Price amount={order.totalPrice} /></span>
+                            </div>
+                            <div>
+                              <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Order #</span>
+                              <span className="text-gray-800">{order.orderNumber}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                             {order.status === 'delivered' ? (
+                               <span className="flex items-center gap-1 text-green-700 text-xs font-bold uppercase tracking-widest bg-green-50 px-3 py-1 rounded-full">
+                                 <CheckCircle size={12} /> Delivered
+                               </span>
+                             ) : (
+                               <span className="flex items-center gap-1 text-blue-700 text-xs font-bold uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-full">
+                                 <Clock size={12} /> {order.status || 'Processing'}
+                               </span>
+                             )}
+                          </div>
+                        </div>
+
+                        {/* Order Content */}
+                        <div className="p-6">
+                          <div className="flex flex-col md:flex-row gap-6">
+                            
+                            {/* Products List */}
+                            <div className="flex-1 space-y-6">
+                              
+                              {(!order.products || order.products.length === 0) && (
+                                <p className="text-sm text-gray-400 italic">No product details found.</p>
+                              )}
+
+                              {order.products?.map((item: any, idx: number) => (
+                                <div key={idx} className="flex gap-4 items-start">
+                                  {/* PRODUCT IMAGE (Using standard img tag since schema uses string URL) */}
+                                  <div className="relative w-16 h-16 bg-gray-100 rounded overflow-hidden shrink-0 border border-gray-100">
+                                    {item.image ? (
+                                      <img 
+                                        src={item.image} 
+                                        alt={item.name || "Product"} 
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                                         <Package size={16} className="text-gray-400" />
+                                      </div>
+                                    )}
+                                  </div>
+                                  {/* PRODUCT TITLE & DETAILS */}
+                                  <div>
+                                    <p className="font-bold text-sm text-gray-900">{item.name || "Unknown Product"}</p>
+                                    <p className="text-xs text-gray-500 mt-1">Qty: {item.quantity}</p>
+                                    
+                                    {/* ITEM-LEVEL RETURN ACTION */}
+                                    {isReturnable ? (
+                                      <Link 
+                                        href={`/returns?orderId=${order.orderNumber}&item=${encodeURIComponent(item.name)}`} 
+                                        className="inline-flex items-center gap-1.5 mt-2 text-[10px] font-bold uppercase tracking-widest text-[#3A4D39] hover:underline"
+                                      >
+                                        <RefreshCw size={12} /> Return Item
+                                      </Link>
+                                    ) : (
+                                      order.status === 'delivered' && (
+                                        <span className="flex items-center gap-1 mt-2 text-[10px] text-gray-400">
+                                          <AlertCircle size={10} /> Return closed {returnDeadline}
+                                        </span>
+                                      )
+                                    )}
+                                  </div>
+                                  <div className="ml-auto text-sm font-medium text-gray-600">
+                                    <Price amount={item.price * (item.quantity || 1)} />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Actions Column */}
+                            <div className="md:w-48 flex flex-col gap-3 border-l border-gray-100 md:pl-6">
+                              <Link 
+                                href={`/track-order?id=${order.orderNumber}`}
+                                className="w-full bg-[#3A4D39] text-white rounded-sm text-center text-xs font-bold uppercase tracking-widest py-3 hover:bg-[#2A3829] transition-colors flex items-center justify-center gap-2"
+                              >
+                                {order.status === 'delivered' ? 'Buy Again' : 'Track Package'}
+                              </Link>
+                              
+                              <Link 
+                                href={`/account/orders/${order._id}`}
+                                className="w-full border border-gray-200 text-gray-600 rounded-sm text-center text-xs font-bold uppercase tracking-widest py-3 hover:bg-gray-50 transition-colors"
+                              >
+                                View Invoice
+                              </Link>
+                              
+                              {order.status !== 'delivered' && (
+                                <p className="text-[10px] text-center text-gray-400 mt-2">
+                                  Est. Delivery: {new Date(order.orderDate || order._createdAt).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
+
+                          </div>
+                        </div>
+
+                      </div>
+                    );
+                  })}
+
+                  {/* --- PAGINATION CONTROLS --- */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-8 py-4">
+                      <button 
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        aria-label="Previous Page"
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-sm transition-colors ${
+                            currentPage === page 
+                              ? "bg-[#3A4D39] text-white" 
+                              : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+
+                      <button 
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        aria-label="Next Page"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  )}
+
+                </div>
+              )}
+            </div>
           )}
 
           {/* 3. ADDRESSES */}

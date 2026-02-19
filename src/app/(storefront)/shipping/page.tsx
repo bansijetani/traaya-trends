@@ -24,7 +24,7 @@ export default function ShippingPage() {
                 </div>
                 <h3 className="font-serif text-xl text-primary mb-3">Free Shipping</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">
-                    Complimentary standard shipping on all domestic orders over $200.
+                    Free shipping on all prepaid orders above ₹1,999
                 </p>
             </div>
 
@@ -33,9 +33,9 @@ export default function ShippingPage() {
                 <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-6 text-primary shadow-sm">
                     <Clock size={20} strokeWidth={1.5} />
                 </div>
-                <h3 className="font-serif text-xl text-primary mb-3">Fast Processing</h3>
+                <h3 className="font-serif text-xl text-primary mb-3">100% Secure Payments</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">
-                    Orders are processed and dispatched within 1-2 business days.
+                    Pay securely via UPI, GPay, Credit/Debit Cards, or Netbanking.
                 </p>
             </div>
 
@@ -46,7 +46,7 @@ export default function ShippingPage() {
                 </div>
                 <h3 className="font-serif text-xl text-primary mb-3">Easy Returns</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">
-                    30-day return policy for all unworn items in original packaging.
+                    14-day return policy for all unworn items in original packaging.
                 </p>
             </div>
         </div>
@@ -63,15 +63,20 @@ export default function ShippingPage() {
             </div>
             <div className="space-y-6 text-sm md:text-base text-gray-500 leading-loose">
                 <p>
-                    We ship worldwide. All orders are processed Monday through Friday, excluding holidays. 
-                    Orders placed on weekends will be processed the following business day.
+                    We proudly ship across India. All orders are carefully packed in our signature Traaya boxes, 
+                    ensuring they reach you safely whether you are in a metro city or a remote town.
                 </p>
                 
-                <h4 className="font-bold text-primary text-xs uppercase tracking-widest mt-6 mb-2">Domestic Shipping (USA)</h4>
+                <h4 className="font-bold text-primary text-xs uppercase tracking-widest mt-6 mb-2">Domestic Shipping (India)</h4>
                 <ul className="list-disc pl-5 space-y-2 marker:text-primary">
-                    <li><strong>Standard (5-7 business days):</strong> $10 or Free for orders over $200</li>
-                    <li><strong>Express (2-3 business days):</strong> $25</li>
-                    <li><strong>Overnight (1 business day):</strong> $45</li>
+                    <li><strong>Standard Shipping:</strong> Free for orders above ₹1,999. A flat rate of ₹99 applies for orders below this amount.</li>
+                    <li><strong>Delivery Timelines:</strong> 
+                    <ul className="pl-5 mt-1 list-[circle]">
+                      <li><strong>Metros (Delhi, Mumbai, Blr, etc.):</strong> 2-4 business days.</li>
+                      <li><strong>Rest of India:</strong> 4-7 business days.</li>
+                    </ul>
+                  </li>
+                  <li><strong>Courier Partners:</strong> We trust Blue Dart, Delhivery, and DTDC to deliver your packages safely.</li>
                 </ul>
 
                 <h4 className="font-bold text-primary text-xs uppercase tracking-widest mt-6 mb-2">International Shipping</h4>
@@ -92,8 +97,7 @@ export default function ShippingPage() {
             </div>
             <div className="space-y-6 text-sm md:text-base text-gray-500 leading-loose">
                 <p>
-                    We want you to love your Traaya Trends purchase. If for any reason you are not satisfied, 
-                    we accept returns within <strong>30 days</strong> of the delivery date.
+                    We want you to love your Traaya jewelry. If something isn't right, you can request a return or exchange within <strong>14 days</strong> of delivery.
                 </p>
                 
                 <div className="bg-red-50 p-6 border border-red-100 rounded-sm">
@@ -106,10 +110,10 @@ export default function ShippingPage() {
 
                 <h4 className="font-bold text-primary text-xs uppercase tracking-widest mt-6 mb-2">How to Initiate a Return</h4>
                 <ol className="list-decimal pl-5 space-y-2 marker:text-primary font-medium">
-                    <li>Log in to your account and go to "Order History".</li>
-                    <li>Select the order you wish to return.</li>
-                    <li>Click "Request Return" and follow the instructions to print your label.</li>
-                    <li>Pack your items securely and drop off the package at the nearest courier location.</li>
+                    <li><strong>Reverse Pickup:</strong> We will arrange a reverse pickup from your address.</li>
+                    <li><strong>Condition:</strong> Items must be unworn, unused, and have all tags/packaging intact.</li>
+                    <li><strong>Refunds:</strong> For prepaid orders, refunds are processed to the original source.</li>
+                    <li><strong>Exceptions:</strong> Personalized items and Nose Pins are non-returnable due to hygiene reasons.</li>
                 </ol>
             </div>
         </section>
@@ -124,11 +128,14 @@ export default function ShippingPage() {
             </div>
             <div className="space-y-4 text-sm md:text-base text-gray-500 leading-loose">
                 <p>
-                    We carefully inspect every piece before it leaves our warehouse. However, if you receive a damaged 
-                    or defective item, please contact us within <strong>48 hours</strong> of delivery.
+                    We rigorously inspect every piece before it leaves our warehouse. However, in the rare case 
+                    that your jewelry arrives damaged, please notify us within <strong>48 hours</strong> of delivery. 
+                    <br /><br />
+                    To help us resolve this quickly, please email us with your <strong>Order ID</strong> and an 
+                    <strong>unboxing video or clear photos</strong> of the defect. We will arrange a free replacement immediately.
                 </p>
                 <p>
-                    Please email <a href="mailto:care@traaya.com" className="text-primary underline">care@traaya.com</a> with 
+                    Please email <a href="mailto:support@traayatrends.com" className="text-primary underline">support@traayatrends.com</a> with 
                     your order number and clear photos of the damage. We will arrange a replacement or refund immediately.
                 </p>
             </div>

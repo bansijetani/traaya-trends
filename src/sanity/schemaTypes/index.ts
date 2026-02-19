@@ -8,7 +8,8 @@ import { navigation } from "./navigation";
 import { coupon } from './coupon';
 import { contact } from './contact';
 import  review  from './review';
+import returnRequest from './returnRequest';
 
 export const schema: { types: SchemaTypeDefinition[] } = {
-  types: [product, userSchema, order, category, settings, navigation, coupon, contact, review], // Add it here
+  types: [product, userSchema, order, category, settings, navigation, coupon, contact, review, returnRequest], // Add it here
 }
