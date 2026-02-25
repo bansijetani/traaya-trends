@@ -1,7 +1,7 @@
 import { client } from "@/sanity/lib/client";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, X, Check, Grid, LayoutGrid, Columns, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, X, Tag, Grid, LayoutGrid, Columns, ChevronLeft, ChevronRight } from "lucide-react";
 import AddToCartButton from "@/components/AddToCartButton";
 import Price from "@/components/Price";
 import MobileFilterBar from "@/components/MobileFilter"; 
@@ -23,10 +23,11 @@ async function getShopData() {
   } | order(name asc)`;
 
   const productQuery = `*[_type == "product"] | order(_createdAt desc) {
-    _id, name, price, 
+    _id, name, price, salePrice,
     "stock": coalesce(stockLevel, 0),
     "slug": slug.current,
     "image": coalesce(image.asset->url, images[0].asset->url),
+    "gallery": gallery[].asset->url,
     "categories": categories[]->slug.current
   }`;
 
@@ -247,21 +248,93 @@ export default async function ShopPage(props: { searchParams: SearchParamsType }
                  ) : (
                     <>
                         <div className={`grid gap-x-6 gap-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 ${getGridClass()}`}>
-                            {paginatedProducts.map((product: any) => (
-                                <div key={product._id} className="group flex flex-col">
-                                    <div className="relative aspect-[3/4] bg-gray-50 mb-4 overflow-hidden rounded-sm">
-                                        <Link href={`/product/${product.slug}`} className="block w-full h-full">
-                                            {product.image ? <Image src={product.image} alt={product.name || "Img"} fill className="object-cover transition-transform duration-700 group-hover:scale-110" /> : <div className="w-full h-full bg-gray-100" />}
-                                        </Link>
-                                        {product.stock <= 0 && <div className="absolute top-0 left-0 w-full bg-black/80 text-white text-[10px] font-bold uppercase py-2 text-center z-10">Out of Stock</div>}
-                                        <div className="absolute bottom-3 right-3 z-20"><AddToCartButton product={product} styleType="icon" stock={product.stock} /></div>
+                            {paginatedProducts.map((product: any) => {
+                                // Determine if we have a secondary image to show on hover
+                                const featuredImage = product.image || (product.gallery && product.gallery[0]);
+                                const hoverImage = product.gallery && product.gallery.length > 0 ? product.gallery[0] : null;
+                                const isOutOfStock = product.stock <= 0;
+
+                                return (
+                                    <div key={product._id} className="group flex flex-col animate-in fade-in duration-700">
+                                        {/* Image Container with Hover Switch */}
+                                        <div className="relative aspect-[3/4] bg-[#F9F9F9] mb-5 overflow-hidden rounded-sm cursor-pointer">
+                                            
+                                            {/* SALE BADGE (Elegant pill shape) */}
+                                            {product.salePrice && (
+                                                <div className="absolute top-3 left-3 z-20">
+                                                    <div className="flex items-center gap-1 bg-secondary text-white px-2.5 py-1 rounded-full shadow-sm ring-1 ring-white/20">
+                                                        <Tag size={8} fill="currentColor" />
+                                                        <span className="text-[8px] font-bold uppercase tracking-widest">Sale</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* OUT OF STOCK BANNER (Horizontal line style) */}
+                                            {isOutOfStock && (
+                                                <div className="absolute top-0 left-0 w-full bg-black/80 text-white text-[9px] font-bold uppercase py-2.5 text-center tracking-[0.2em] z-20 backdrop-blur-sm">
+                                                    Out of Stock
+                                                </div>
+                                            )}
+
+                                            <Link href={`/product/${product.slug}`} className="block w-full h-full">
+                                                {/* Primary Image */}
+                                                {featuredImage ? (
+                                                    <Image 
+                                                        src={featuredImage} 
+                                                        alt={product.name} 
+                                                        fill 
+                                                        className={`object-cover transition-opacity duration-700 ease-in-out ${hoverImage ? 'group-hover:opacity-0' : ''} ${isOutOfStock ? 'opacity-60 grayscale' : ''}`} 
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-300">No Image</div>
+                                                )}
+
+                                                {/* Secondary Image (Visible on hover) */}
+                                                {hoverImage && (
+                                                    <Image 
+                                                        src={hoverImage} 
+                                                        alt={`${product.name} alternate view`} 
+                                                        fill 
+                                                        className="object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-in-out scale-105 group-hover:scale-100" 
+                                                    />
+                                                )}
+                                            </Link>
+
+                                            {/* Add to Cart Trigger */}
+                                            <div className="absolute bottom-3 right-3 z-20 translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-500">
+                                                <AddToCartButton product={product} styleType="icon" stock={product.stock} />
+                                            </div>
+                                        </div>
+
+                                        {/* Product Details */}
+                                        <div className="text-center">
+                                            <Link href={`/product/${product.slug}`}>
+                                                <h3 className="font-serif text-sm text-primary hover:text-secondary transition-colors line-clamp-1 mb-1">
+                                                    {product.name}
+                                                </h3>
+                                            </Link>
+                                            
+                                            {/* Dual Pricing Display */}
+                                            <div className="flex items-center justify-center gap-2">
+                                                {product.salePrice ? (
+                                                    <>
+                                                        <span className="text-xs font-bold text-secondary">
+                                                            <Price amount={product.salePrice} />
+                                                        </span>
+                                                        <span className="text-[10px] text-gray-400 line-through italic">
+                                                            <Price amount={product.price} />
+                                                        </span>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-xs font-bold text-gray-500">
+                                                        <Price amount={product.price} />
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <Link href={`/product/${product.slug}`}><h3 className="font-serif text-base text-primary hover:text-secondary line-clamp-1">{product.name}</h3></Link>
-                                        <div className="flex gap-2 items-center mt-1"><span className="text-sm font-bold text-secondary"><Price amount={product.price} /></span></div>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                         {totalPages > 1 && (
                             <div className="flex justify-center items-center gap-3 mt-16 pt-10 border-t border-gray-100">

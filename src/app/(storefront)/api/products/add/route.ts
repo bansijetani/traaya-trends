@@ -24,12 +24,14 @@ export async function POST(req: Request) {
     const price = Number(formData.get("price"));
     const salePrice = formData.get("salePrice") ? Number(formData.get("salePrice")) : null;
     const description = formData.get("description") as string;
+    const additionalInfo = formData.get("additionalInfo") as string;
     
     // 👇 NEW FIELDS
     const sku = formData.get("sku") as string;
     const stockLevel = Number(formData.get("stockLevel")) || 0;
 
     const categories = formData.getAll("categories") as string[];
+    const tags = formData.getAll("tags") as string[];
     const imageFile = formData.get("image") as File; // Required
     const galleryFiles = formData.getAll("gallery") as File[];
 
@@ -49,8 +51,10 @@ export async function POST(req: Request) {
       price,
       salePrice,
       description,
+      additionalInfo,
       sku,        // Saving SKU
       stockLevel, // Saving Stock
+      tags,
       categories: categories.map((id) => ({
         _type: "reference",
         _ref: id,

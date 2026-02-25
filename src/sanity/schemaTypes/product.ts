@@ -36,6 +36,12 @@ export default {
       type: 'text', // 'text' is better for long descriptions than 'string'
     },
     {
+      name: 'additionalInfo',
+      title: 'Additional Information',
+      type: 'text',
+      description: 'Technical specs, care instructions, or other detailed info.',
+    },
+    {
       name: 'details',
       title: 'Details',
       type: 'string',
@@ -60,6 +66,16 @@ export default {
       title: 'Categories',
       type: 'array',
       of: [{ type: 'reference', to: { type: 'category' } }],
+    },
+    {
+      name: 'tags',
+      title: 'Product Tags (SEO)',
+      type: 'array',
+      of: [{ type: 'string' }],
+      options: {
+        layout: 'tags', // This creates a nice UI where words become "pills"
+      },
+      description: 'Add keywords to help with SEO and Search Console indexing. Press Enter after each tag.',
     },
     {
       name: 'sku',

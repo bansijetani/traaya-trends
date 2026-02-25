@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { client } from "@/sanity/lib/client";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Loader2, Image as ImageIcon, Save, Plus, CheckCircle, XCircle, CornerDownRight, User } from "lucide-react";
+import { ArrowLeft, Loader2, Image as ImageIcon, Save, Plus, CheckCircle, XCircle, CornerDownRight, User, X } from "lucide-react";
 import { urlFor } from "@/sanity/lib/image";
 
 export default function EditProductPage() {
@@ -30,11 +30,12 @@ export default function EditProductPage() {
     slug: "",
     price: "",
     salePrice: "",
-    // 👇 NEW FIELDS ADDED
     sku: "",
     stockLevel: "",
     categories: [] as string[],
+    tags: [] as string[],
     description: "",
+    additionalInfo: "",
     image: null as File | null,
     gallery: [] as File[],
   });
@@ -62,7 +63,9 @@ export default function EditProductPage() {
           stockLevel,
           addedBy, 
           "selectedCategories": categories[]->_id, 
+          tags,
           description,
+          additionalInfo,
           image,
           gallery
         }`;
@@ -74,11 +77,12 @@ export default function EditProductPage() {
             slug: product.slug || "",
             price: product.price || "",
             salePrice: product.salePrice || "",
-            // 👇 Map new fields
             sku: product.sku || "",
             stockLevel: product.stockLevel || 0,
             categories: product.selectedCategories || [],
+            tags: product.tags || [],
             description: product.description || "",
+            additionalInfo: product.additionalInfo || "",
             image: null,
             gallery: [],
           });
@@ -161,6 +165,12 @@ export default function EditProductPage() {
         return;
     }
 
+    if (formData.salePrice && formData.salePrice >= formData.price) {
+      showToast("Sale price must be lower than the regular price.", "error");
+      setSaving(false);
+      return; // Stop the submission
+    }
+
     const data = new FormData();
     data.append("productId", productId);
     data.append("name", formData.name);
@@ -173,9 +183,11 @@ export default function EditProductPage() {
 
     if (formData.salePrice) data.append("salePrice", formData.salePrice);
     data.append("description", formData.description);
+    data.append("additionalInfo", formData.additionalInfo);
     
     formData.categories.forEach(id => data.append("categories", id));
-    
+    formData.tags.forEach(tag => data.append("tags", tag));
+    data.append("existingGallery", JSON.stringify(existingGallery));
     if (formData.image) data.append("image", formData.image);
     formData.gallery.forEach((file) => data.append("gallery", file));
 
@@ -251,6 +263,16 @@ export default function EditProductPage() {
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                 <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Description</label>
                 <textarea name="description" rows={10} value={formData.description} onChange={handleChange} className="w-full p-4 border border-gray-200 rounded-md text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#B87E58]" />
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Additional Information</label>
+              <textarea 
+                  name="additionalInfo" rows={6} 
+                  value={formData.additionalInfo} 
+                  onChange={handleChange} 
+                  className="w-full p-4 border border-gray-200 rounded-md text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#B87E58]" 
+              />
             </div>
 
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
@@ -359,36 +381,110 @@ export default function EditProductPage() {
                 </div>
             </div>
 
+            {/* SEO Tags Section */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h3 className="font-bold text-sm mb-4">Featured Image</h3>
-                <div className="relative w-full h-48 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center overflow-hidden hover:bg-gray-100 group transition-colors cursor-pointer">
-                    <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                    {imagePreview ? <img src={imagePreview} className="w-full h-full object-cover" /> : <div className="text-center text-gray-400 group-hover:text-gray-600"><ImageIcon size={24} className="mx-auto mb-2"/><span className="text-xs font-medium">Change Image</span></div>}
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Product Tags (SEO)</label>
+                <div className="flex flex-wrap gap-2 mb-3">
+                    {formData.tags.map((tag, index) => (
+                        <span key={index} className="bg-gray-100 text-primary text-xs px-3 py-1 rounded-full flex items-center gap-2 border border-gray-200">
+                            {tag}
+                            <button 
+                                type="button" 
+                                onClick={() => setFormData(prev => ({ ...prev, tags: prev.tags.filter((_, i) => i !== index) }))}
+                                className="hover:text-red-500 cursor-pointer"
+                            >
+                                <XCircle size={14} />
+                            </button>
+                        </span>
+                    ))}
                 </div>
+                <input 
+                    type="text" 
+                    placeholder="Type a tag and press Enter..." 
+                    className="w-full p-3 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#B87E58]"
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const val = e.currentTarget.value.trim();
+                            if (val && !formData.tags.includes(val)) {
+                                setFormData(prev => ({ ...prev, tags: [...prev.tags, val] }));
+                                e.currentTarget.value = "";
+                            }
+                        }
+                    }}
+                />
+                <p className="text-[10px] text-gray-400 mt-2">Keywords like "Minimalist Jewelry" or "Gold Ring" help Google find your products.</p>
             </div>
 
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h3 className="font-bold text-sm mb-4">Gallery</h3>
-                <div className="grid grid-cols-3 gap-3">
-                    {/* Existing Images */}
-                    {existingGallery.map((img: any, i) => (
-                         <div key={`old-${i}`} className="aspect-square rounded-lg overflow-hidden border border-gray-200 relative">
-                            <img src={urlFor(img).url()} className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" />
-                        </div>
-                    ))}
-                    {/* New Images */}
-                    {newGalleryPreviews.map((src, i) => (
-                        <div key={`new-${i}`} className="aspect-square rounded-lg overflow-hidden border border-green-500 border-2 relative">
-                            <img src={src} className="w-full h-full object-cover" />
-                        </div>
-                    ))}
-                    <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors">
-                        <Plus size={20} className="text-gray-400 mb-1" />
-                        <span className="text-[10px] text-gray-500">Add</span>
-                        <input type="file" multiple accept="image/*" className="hidden" onChange={handleGalleryChange} />
-                    </label>
+              <h3 className="font-bold text-sm mb-4">Featured Image</h3>
+              <div className="relative w-full h-48 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center overflow-hidden hover:bg-gray-100 group transition-colors">
+                  {imagePreview ? (
+                      <>
+                          <img src={imagePreview} className="w-full h-full object-cover" />
+                          {/* 🗑️ REMOVE BUTTON */}
+                          <button 
+                              type="button"
+                              onClick={() => { setImagePreview(null); setFormData({...formData, image: null}); }}
+                              className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                          >
+                              <XCircle size={16} />
+                          </button>
+                      </>
+                  ) : (
+                      <div className="text-center text-gray-400">
+                          <ImageIcon size={24} className="mx-auto mb-2"/>
+                          <span className="text-xs font-medium">Add Image</span>
+                      </div>
+                  )}
+                  <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+              </div>
+          </div>
+
+          {/* Gallery Section */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <h3 className="font-bold text-sm mb-4">Gallery</h3>
+            <div className="grid grid-cols-3 gap-3">
+              {/* Existing Images from Sanity */}
+              {existingGallery.map((img: any, i) => (
+                <div key={`old-${i}`} className="aspect-square rounded-lg overflow-hidden border border-gray-200 relative group">
+                  <img src={urlFor(img).url()} className="w-full h-full object-cover" />
+                  {/* 🗑️ REMOVE BUTTON */}
+                  <button 
+                    type="button"
+                    onClick={() => setExistingGallery(prev => prev.filter((_, idx) => idx !== i))}
+                    className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-md"
+                  >
+                    <X size={12} />
+                  </button>
                 </div>
+              ))}
+
+              {/* New Images added in this session */}
+              {newGalleryPreviews.map((src, i) => (
+                <div key={`new-${i}`} className="aspect-square rounded-lg overflow-hidden border-green-500 border-2 relative group">
+                  <img src={src} className="w-full h-full object-cover" />
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setNewGalleryPreviews(prev => prev.filter((_, idx) => idx !== i));
+                      setFormData(prev => ({ ...prev, gallery: prev.gallery.filter((_, idx) => idx !== i) }));
+                    }}
+                    className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-md"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+
+              {/* Add Button */}
+              <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors">
+                <Plus size={20} className="text-gray-400 mb-1" />
+                <span className="text-[10px] text-gray-500">Add</span>
+                <input type="file" multiple accept="image/*" className="hidden" onChange={handleGalleryChange} />
+              </label>
             </div>
+          </div>
         </div>
       </div>
     </form>

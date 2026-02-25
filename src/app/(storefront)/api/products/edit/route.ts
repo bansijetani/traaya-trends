@@ -19,38 +19,47 @@ export async function PUT(req: Request) {
     const formData = await req.formData();
     const productId = formData.get("productId") as string;
 
-    // 1. Extract Basic Fields
+    // 1. Extract Fields
     const name = formData.get("name") as string;
     const slug = formData.get("slug") as string;
     const price = Number(formData.get("price"));
     const salePrice = formData.get("salePrice") ? Number(formData.get("salePrice")) : null;
     const description = formData.get("description") as string;
-    
-    // 👇 2. EXTRACT NEW INVENTORY FIELDS (This was missing!)
+    const additionalInfo = formData.get("additionalInfo") as string;
     const sku = formData.get("sku") as string;
     const stockLevel = Number(formData.get("stockLevel"));
-
     const categories = formData.getAll("categories") as string[];
+    const tags = formData.getAll("tags") as string[];
+
+    // 📸 IMAGE FIELDS
     const imageFile = formData.get("image") as File | null;
     const galleryFiles = formData.getAll("gallery") as File[];
+    
+    // 🗑️ NEW: Get the list of existing gallery image IDs/references that we want to KEEP
+    // In your frontend, send these as 'existingGalleryIds'
+    const existingGalleryJson = formData.get("existingGallery") as string; 
+    const existingGallery = existingGalleryJson ? JSON.parse(existingGalleryJson) : [];
 
-    // 3. Prepare the update object
+    // 2. Prepare the update object
     const updates: any = {
       name,
       slug: { _type: "slug", current: slug },
       price,
       salePrice,
       description,
-      sku,        // 👈 Saving SKU
-      stockLevel, // 👈 Saving Stock
+      additionalInfo,
+      sku,
+      stockLevel,
+      tags,
       categories: categories.map((catId) => ({
         _type: "reference",
         _ref: catId,
-        _key: catId, // Adding key helps Sanity avoid conflicts
+        _key: catId,
       })),
     };
 
-    // 4. Handle Featured Image Update (Only if new one provided)
+    // 3. Handle Featured Image Removal/Update
+    // If imageFile is explicitly 'null' or empty in your logic, you can unset it.
     if (imageFile && imageFile.size > 0) {
       const imageAsset = await client.assets.upload("image", imageFile);
       updates.image = {
@@ -59,24 +68,15 @@ export async function PUT(req: Request) {
       };
     }
 
-    // 5. Handle Gallery Update (Append new images to existing)
+    // 4. Build the NEW Gallery array (Existing kept items + New uploads)
+    let finalGallery = existingGallery.map((img: any) => ({
+        _type: 'image',
+        _key: img._key || Math.random().toString(36).substring(7),
+        asset: { _type: 'reference', _ref: img.asset?._ref || img.asset?._id }
+    }));
+
     if (galleryFiles.length > 0) {
         const galleryAssets = await Promise.all(
-            galleryFiles.map(file => client.assets.upload("image", file))
-        );
-        
-        // We use client.patch().setIfMissing().append() pattern usually, 
-        // but here we are simplifying to just append to the list via the main patch if possible,
-        // or we need a separate operation. To keep it simple in one go:
-        // We will fetch existing, or just use `insert` in the patch below.
-    }
-
-    // 6. Execute the Update
-    const patch = client.patch(productId).set(updates);
-
-    // If there are new gallery images, append them
-    if (galleryFiles.length > 0) {
-         const galleryAssets = await Promise.all(
             galleryFiles.map(file => client.assets.upload("image", file))
         );
         const newGalleryObjects = galleryAssets.map(asset => ({
@@ -84,15 +84,23 @@ export async function PUT(req: Request) {
             _key: asset._id,
             asset: { _type: 'reference', _ref: asset._id }
         }));
-        // Append to end of gallery array
-        patch.setIfMissing({ gallery: [] }).append('gallery', newGalleryObjects);
+        finalGallery = [...finalGallery, ...newGalleryObjects];
     }
 
-    await patch.commit();
+    // Overwrite the gallery field with the new combined/filtered list
+    updates.gallery = finalGallery;
+
+    // 5. Execute the Update
+    // Using .set() overwrites the fields, effectively "removing" anything not in the 'updates' object
+    await client.patch(productId).set(updates).commit();
 
     return NextResponse.json({ message: "Product updated successfully" });
   } catch (error) {
     console.error("Error updating product:", error);
+    // Return specific error message for permission issues seen in console
+    if (error instanceof Error && error.message.includes("permissions")) {
+        return NextResponse.json({ message: "Sanity Token has insufficient permissions." }, { status: 403 });
+    }
     return NextResponse.json({ message: "Error updating product" }, { status: 500 });
   }
 }

@@ -59,6 +59,7 @@ export default function WishlistPage() {
             name, 
             price,
             slug,
+            stockLevel,
             "image": coalesce(image.asset->url, images[0].asset->url)
         }
       }`;
@@ -154,6 +155,7 @@ export default function WishlistPage() {
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12">
             {currentItems.map((item) => {
                 const productName = item.title || item.name || "Product";
+                const isOutOfStock = (item.stockLevel ?? 0) === 0;
                 return (
                     <div key={item._id} className="group flex flex-col relative animate-in fade-in zoom-in duration-500">
                         
@@ -201,16 +203,26 @@ export default function WishlistPage() {
     
                             {/* Actions */}
                             <div className="mt-auto">
-                               <AddToCartButton 
-                                    product={{
-                                        _id: item._id,
-                                        name: productName,
-                                        price: item.price,
-                                        image: item.image,
-                                        slug: item.slug
-                                    }}
-                                    styleType="full" 
-                               />
+                               {/* 👈 UPDATED: Handle button state based on stockLevel */}
+                               {isOutOfStock ? (
+                                    <button 
+                                        disabled
+                                        className="w-full h-12 bg-gray-100 text-gray-400 text-[10px] font-bold uppercase tracking-widest cursor-not-allowed flex items-center justify-center gap-2 border border-gray-200"
+                                    >
+                                        Out of Stock
+                                    </button>
+                               ) : (
+                                   <AddToCartButton 
+                                      product={{
+                                          _id: item._id,
+                                          name: productName,
+                                          price: item.price,
+                                          image: item.image,
+                                          slug: item.slug
+                                      }}
+                                      styleType="full" 
+                                   />
+                               )}
                             </div>
                         </div>
                     </div>

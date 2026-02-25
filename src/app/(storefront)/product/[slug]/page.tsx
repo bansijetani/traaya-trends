@@ -1,8 +1,8 @@
 "use client";
 
 import { 
-  Heart, ArrowRightLeft, Star, ChevronRight, ChevronLeft, 
-  X, Check, ShoppingBag, Eye, Share2, User, MessageSquare 
+  Heart, ArrowRightLeft, Star, ChevronRight, Tag, 
+  X, Check, ShoppingBag, Eye, Share2, AlertTriangle, MessageSquare 
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -36,6 +36,7 @@ interface SanityProduct {
   images: any[];
   stockLevel: number;
   category?: string;
+  tags?: string[];
   details?: string;
   slug: { current: string } | string;
   sizes?: string[];      
@@ -79,8 +80,8 @@ export default function ProductPage() {
         setLoading(true);
         // 1. Fetch Product
         const productQuery = `*[_type == "product" && slug.current == "${slug}"][0]{
-          _id, name, price, oldPrice, description, "shortDesc": description, 
-          "slug": slug.current, images, stockLevel, category, details, sizes, materials, colors
+          _id, name, price, salePrice, description, additionalInfo, "shortDesc": description, 
+          "slug": slug.current, "images": [image] + gallery, stockLevel, category, details, sizes, materials, colors, tags
         }`;
         const fetchedProduct = await client.fetch(productQuery);
         setProduct(fetchedProduct);
@@ -90,10 +91,13 @@ export default function ProductPage() {
           if (fetchedProduct.sizes?.length > 0) setSelectedSize(fetchedProduct.sizes[0]);
           if (fetchedProduct.materials?.length > 0) setSelectedMaterial(fetchedProduct.materials[0]);
           if (fetchedProduct.colors?.length > 0) setSelectedColor(fetchedProduct.colors[0]);
+          if (fetchedProduct.images) {
+            fetchedProduct.images = fetchedProduct.images.filter((img: any) => img !== null);
+          }
           
           // 2. Fetch Related
           const relatedQuery = `*[_type == "product" && _id != "${fetchedProduct._id}"][0...4]{
-            _id, name, price, oldPrice, "slug": slug.current, "images": images, "stockLevel": stockLevel
+            _id, name, price, salePrice, "slug": slug.current, "images": [image] + gallery, "stockLevel": stockLevel
           }`;
           const fetchedRelated = await client.fetch(relatedQuery);
           setRelatedProducts(fetchedRelated);
@@ -111,6 +115,42 @@ export default function ProductPage() {
     };
     fetchData();
   }, [slug]);
+
+  const handleShare = async () => {
+    if (!product) return;
+
+    const shareData = {
+      title: `${product.name} | Traaya Trends`,
+      text: `Check out the ${product.name} at Traaya Trends. Crafted with elegance and meaning.`,
+      url: window.location.href,
+    };
+
+    try {
+      // Check if native sharing is supported (Mobile/Safari)
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback: Copy to Clipboard (Desktop/Chrome)
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("Link copied to clipboard!", {
+          icon: '🔗',
+          style: {
+            borderRadius: '0px',
+            background: '#1A1A1A',
+            color: '#fff',
+            fontSize: '12px',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase'
+          },
+        });
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error("Error sharing:", error);
+        toast.error("Sharing failed. Please try again.");
+      }
+    }
+  };
 
   // --- SUBMIT HANDLER ---
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -198,6 +238,7 @@ export default function ProductPage() {
             image: product.images && product.images.length > 0 ? getImageUrl(product.images[0]) : "",
             description: product.description || product.shortDesc,
             sku: typeof product.slug === 'string' ? product.slug : product.slug?.current,
+            keywords: product.tags?.join(", "),
             offers: {
               "@type": "Offer",
               url: `https://traaya-trends.vercel.app/product/${slug}`,
@@ -242,10 +283,27 @@ export default function ProductPage() {
                 />
               ) : <div className="w-full h-full flex items-center justify-center text-gray-300">No Image</div>}
               
-              <div className="absolute top-4 left-4 flex flex-col gap-2">
-                  {product.oldPrice && <span className="bg-secondary text-white text-[10px] font-bold px-3 py-1.5 uppercase tracking-widest">Sale</span>}
-                  {isLowStock && !isOutOfStock && <span className="bg-orange-500 text-white text-[10px] font-bold px-3 py-1.5 uppercase tracking-widest">Low Stock</span>}
+              <div className="absolute top-4 left-4 flex flex-col gap-2 z-10 font-sans pointer-events-none">
+    
+              {/* SALE BADGE - Elegant Gold Pill with Icon */}
+              {product.salePrice && (
+              <div className="flex items-center gap-1.5 bg-secondary text-white pl-2.5 pr-3 py-1.5 rounded-full shadow-md ring-1 ring-white/30 backdrop-blur-sm bg-opacity-[0.97]">
+                  <Tag size={11} fill="currentColor" className="opacity-90" />
+                  <span className="text-[9px] leading-none font-bold uppercase tracking-[0.15em]">Sale</span>
               </div>
+              )}
+
+              {/* LOW STOCK BADGE - Urgent Burnt Orange with Count */}
+              {isLowStock && !isOutOfStock && (
+                <div className="flex items-center gap-1.5 bg-[#C05621] text-white pl-2.5 pr-3 py-1.5 rounded-full shadow-md ring-1 ring-white/30 backdrop-blur-sm bg-opacity-[0.97]">
+                    <AlertTriangle size={11} className="opacity-90" />
+                    <span className="text-[9px] leading-none font-bold uppercase tracking-[0.15em]">
+                        Only {stockLevel} Left
+                    </span>
+                </div>
+              )}
+
+          </div>
               <div className="absolute bottom-4 right-4 bg-white/80 backdrop-blur-sm p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><Eye size={16} /></div>
             </div>
             
@@ -271,14 +329,32 @@ export default function ProductPage() {
                   </div>
                   <span className="text-xs text-gray-400 ml-2">({reviews.length} reviews)</span>
                 </div>
-                <button className="text-gray-400 hover:text-primary transition-colors"><Share2 size={18} /></button>
+                <button 
+                  onClick={handleShare}
+                  className="text-gray-400 hover:text-primary transition-colors p-2 -mr-2"
+                  title="Share Product"
+                >
+                  <Share2 size={18} />
+                </button>
               </div>
 
               <h1 className="font-serif text-3xl md:text-5xl mb-4 text-primary leading-tight">{product.name}</h1>
 
               <div className="flex items-baseline gap-4 mb-6">
-                <span className="text-2xl md:text-3xl font-medium text-primary"><Price amount={product.price} /></span>
-                {product.oldPrice && <span className="text-gray-400 line-through text-lg"><Price amount={product.oldPrice} /></span>}
+                {product.salePrice ? (
+                  <>
+                    <span className="text-2xl md:text-3xl font-medium text-secondary">
+                      <Price amount={product.salePrice} />
+                    </span>
+                    <span className="text-gray-400 line-through text-lg italic">
+                      <Price amount={product.price} />
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-2xl md:text-3xl font-medium text-primary">
+                    <Price amount={product.price} />
+                  </span>
+                )}
               </div>
 
               <p className="text-gray-600 text-sm leading-relaxed mb-8 border-b border-gray-100 pb-8">{product.shortDesc || "Experience the elegance of handcrafted luxury."}</p>
@@ -377,14 +453,14 @@ export default function ProductPage() {
 
               {/* Badges */}
               <div className="grid grid-cols-3 gap-4 py-6 border-t border-gray-100">
-                  <div className="text-center"><ShoppingBag size={14} className="text-primary mx-auto mb-2"/><p className="text-[10px] uppercase font-bold text-gray-500">Free Shipping</p></div>
-                  <div className="text-center"><Check size={14} className="text-primary mx-auto mb-2"/><p className="text-[10px] uppercase font-bold text-gray-500">Lifetime Warranty</p></div>
-                  <div className="text-center"><ArrowRightLeft size={14} className="text-primary mx-auto mb-2"/><p className="text-[10px] uppercase font-bold text-gray-500">30-Day Returns</p></div>
+                  <div className="text-center"><ShoppingBag size={14} className="text-primary mx-auto mb-2"/><p className="text-[10px] uppercase font-bold text-gray-500">Complimentary Shipping</p> <p className="text-[10px] text-gray-500"> On all orders above ₹1,999. </p> </div>
+                  <div className="text-center"><Check size={14} className="text-primary mx-auto mb-2"/><p className="text-[10px] uppercase font-bold text-gray-500">Ethical Craftsmanship</p> <p className="text-[10px] text-gray-500"> 100% handcrafted pieces designed to be shared, gifted, and worn as tangible reminders of the people who anchor your life.</p> </div>
+                  <div className="text-center"><ArrowRightLeft size={14} className="text-primary mx-auto mb-2"/><p className="text-[10px] uppercase font-bold text-gray-500">Carbon-Neutral Returns</p> <p className="text-[10px] text-gray-500"> Easy 14-day returns in original packaging to ensure your perfect fit. </p>  </div>
               </div>
 
               {/* Accordions */}
               <div className="border-t border-gray-100 mt-6">
-                {['Description', 'Details', 'Shipping & Returns'].map((section) => (
+                {['Description', 'Additional Information', 'Shipping & Returns'].map((section) => (
                     <div key={section} className="border-b border-gray-100">
                         <button onClick={() => toggleSection(section.toLowerCase())} className="w-full py-5 flex items-center justify-between group text-left transition-colors cursor-pointer">
                             <span className="font-serif text-sm uppercase tracking-widest text-primary">{section}</span>
@@ -392,12 +468,25 @@ export default function ProductPage() {
                         </button>
                         <div className={`overflow-hidden transition-all duration-500 ease-in-out ${activeSections.includes(section.toLowerCase()) ? 'max-h-[500px] opacity-100 pb-6' : 'max-h-0 opacity-0'}`}>
                             <p className="text-gray-500 text-sm leading-relaxed">
-                                {section === 'Description' ? (product.description || "No description.") : section === 'Details' ? (product.details || "Handcrafted.") : "Free shipping over $200."}
+                                {section === 'Description' ? (product.description || "No description.") : section === 'Additional Information' ? (product.additionalInfo || "Handcrafted.") : "Free shipping over ₹1,999."}
                             </p>
                         </div>
                     </div>
                 ))}
               </div>
+              {/* Visual Tags for UX/SEO */}
+              {product.tags && product.tags.length > 0 && (
+                <div className="mt-8 pt-6 border-t border-gray-100">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3 block">Related Styles</span>
+                  <div className="flex flex-wrap gap-2">
+                    {product.tags.map((tag) => (
+                      <span key={tag} className="text-[10px] bg-gray-50 text-gray-500 px-3 py-1 border border-gray-100 rounded-full hover:bg-secondary hover:text-white transition-colors cursor-default">
+                        #{tag.replace(/\s+/g, '')}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -493,28 +582,88 @@ export default function ProductPage() {
 
         {/* You May Also Like */}
         <div className="max-w-[1400px] mx-auto mt-24 pt-16 border-t border-gray-100">
-          <h2 className="font-serif text-2xl md:text-3xl uppercase tracking-wide text-primary mb-10 text-left">You May Also Like</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {relatedProducts.map((item) => (
-              <div key={item._id} className="group relative">
-                <div className="relative aspect-[3/4] bg-[#F9F9F9] mb-4 overflow-hidden rounded-sm">
-                   <Link href={`/product/${typeof item.slug === 'string' ? item.slug : item.slug.current}`} className="block w-full h-full">
-                    {item.images && item.images[0] && <Image src={getImageUrl(item.images[0])} alt={item.name} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />}
-                   </Link>
-                   <div className="absolute bottom-4 left-4 right-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 opacity-0 group-hover:opacity-100">
-                       <AddToCartButton product={{ ...item, slug: typeof item.slug === 'string' ? item.slug : item.slug.current }} stock={item.stockLevel} styleType="minimal" />
-                   </div>
+          <div className="flex items-end justify-between mb-12">
+            <div>
+                <span className="text-secondary text-[10px] font-bold uppercase tracking-[0.3em] mb-3 block">Curated for You</span>
+                <h2 className="font-serif text-3xl md:text-4xl text-primary uppercase tracking-wide">You May Also Like</h2>
+            </div>
+            <Link href="/shop" className="text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-primary transition-colors border-b border-gray-200 pb-1">View All</Link>
+          </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12">
+          {relatedProducts.map((item) => {
+            const hasSecondaryImage = item.images && item.images.length > 1;
+            
+            return (
+              <div key={item._id} className="group flex flex-col relative animate-in fade-in duration-700">
+                
+                {/* Image Container with Hover Switch */}
+                <div className="relative aspect-[3/4] bg-[#F9F9F9] mb-5 overflow-hidden rounded-sm cursor-pointer">
+                  
+                  {/* Sale Badge for Related Products */}
+                  {item.salePrice && (
+                      <div className="absolute top-3 left-3 z-20">
+                          <div className="flex items-center gap-1 bg-secondary text-white px-2 py-1 rounded-full shadow-sm">
+                              <Tag size={8} fill="currentColor" />
+                              <span className="text-[8px] font-bold uppercase tracking-widest">Sale</span>
+                          </div>
+                      </div>
+                  )}
+
+                  <Link href={`/product/${typeof item.slug === 'string' ? item.slug : item.slug.current}`} className="block w-full h-full">
+                      {/* Primary Image (Featured) */}
+                      {item.images && item.images[0] && (
+                          <Image 
+                              src={getImageUrl(item.images[0])} 
+                              alt={item.name} 
+                              fill 
+                              className={`object-cover transition-opacity duration-700 ease-in-out ${hasSecondaryImage ? 'group-hover:opacity-0' : ''}`} 
+                          />
+                      )}
+
+                      {/* Secondary Image (First Gallery Image - visible on hover) */}
+                      {hasSecondaryImage && (
+                          <Image 
+                              src={getImageUrl(item.images[1])} 
+                              alt={`${item.name} alternate view`} 
+                              fill 
+                              className="object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-in-out scale-105 group-hover:scale-100" 
+                          />
+                      )}
+                  </Link>
+
+                  {/* Quick Add to Cart Overlay */}
+                  <div className="absolute bottom-4 left-4 right-4 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-500 z-10">
+                      <AddToCartButton 
+                          product={{ ...item, slug: typeof item.slug === 'string' ? item.slug : item.slug.current }} 
+                          stock={item.stockLevel} 
+                          styleType="minimal" 
+                      />
+                  </div>
                 </div>
-                <div className="text-center">
-                    <h3 className="font-serif text-sm text-primary hover:text-secondary transition-colors mb-1">
+
+                {/* Product Details */}
+                <div className="text-center px-2">
+                    <h3 className="font-serif text-sm md:text-base text-primary hover:text-secondary transition-colors mb-2 line-clamp-1">
                         <Link href={`/product/${typeof item.slug === 'string' ? item.slug : item.slug.current}`}>{item.name}</Link>
                     </h3>
-                    <div className="text-xs font-bold text-gray-500"><Price amount={item.price} /></div>
+                    
+                    <div className="flex items-center justify-center gap-3">
+                        {item.salePrice ? (
+                          <>
+                              <span className="text-xs font-bold text-secondary"><Price amount={item.salePrice} /></span>
+                              <span className="text-[10px] text-gray-400 line-through italic"><Price amount={item.price} /></span>
+                          </>
+                        ) : (
+                          <span className="text-xs font-bold text-gray-500"><Price amount={item.price} /></span>
+                        )}
+                    </div>
                 </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
+      </div>
 
       </div>
       
