@@ -30,8 +30,9 @@ interface SanityProduct {
   _id: string;
   name: string;
   price: number;
-  oldPrice?: number;
+  salePrice?: number;
   description?: string;
+  additionalInfo?: string;
   shortDesc?: string;
   images: any[];
   stockLevel: number;
