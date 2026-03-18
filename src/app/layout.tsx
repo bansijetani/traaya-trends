@@ -11,7 +11,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "sw
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair", display: "swap", });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://traaya-trends.vercel.app"),
+  metadataBase: new URL("https://traayatrends.com"),
 
   title: {
     template: "%s | Traaya Trends", // Automatically adds brand name to child pages
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Traaya Trends | Modern & Trending Jewelry",
     description: "Discover the latest in modern jewelry. Shop high-quality sculptural silver, baroque pearls, and trending accessories.",
-    url: "https://traaya-trends.vercel.app", // Your live URL
+    url: "https://traayatrends.com", // Your live URL
     siteName: "Traaya Trends",
     images: [
       {

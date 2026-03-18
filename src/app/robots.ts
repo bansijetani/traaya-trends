@@ -14,6 +14,6 @@ export default function robots(): MetadataRoute.Robots {
       ],
     },
     // Points search engines directly to the dynamic sitemap we built earlier
-    sitemap: 'https://traaya-trends.vercel.app/sitemap.xml',
+    sitemap: 'https://traayatrends.com/sitemap.xml',
   };
 }

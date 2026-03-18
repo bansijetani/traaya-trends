@@ -242,7 +242,7 @@ export default function ProductPage() {
             keywords: product.tags?.join(", "),
             offers: {
               "@type": "Offer",
-              url: `https://traaya-trends.vercel.app/product/${slug}`,
+              url: `https://traayatrends.com/product/${slug}`,
               priceCurrency: "USD",
               price: product.price,
               availability: product.stockLevel > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",

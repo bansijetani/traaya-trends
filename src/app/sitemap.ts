@@ -9,7 +9,7 @@ const client = createClient({
 });
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = "https://traaya-trends.vercel.app"; // Update to your custom domain later!
+  const baseUrl = "https://traayatrends.com"; // Update to your custom domain later!
 
   // 1. Fetch all product slugs and their last updated dates from Sanity
   const products = await client.fetch(
